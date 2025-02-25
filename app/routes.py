@@ -231,22 +231,18 @@ def get_file_content(username, file_path):
         return jsonify({'error': 'User not found'}), 404
         
     try:
-        # Check if we have this file in our cached heartbeat data
-        if instance.cached_data and 'files_data' in instance.cached_data:
-            files_data = instance.cached_data['files_data']
-            
-            # If we have a file_contents dictionary with this path
-            if 'file_contents' in files_data and file_path in files_data['file_contents']:
-                return jsonify(files_data['file_contents'][file_path])
-                
-        # If we don't have it cached, we'll try to fetch it from the local instance
-        # This will be a fallback that likely won't work due to IP issues, but keeping for completeness
-        params = {'path': file_path}
-        file_content, success = fetch_local_data(instance, f"files/{file_path}", params)
+        # Fetch file content directly from the local instance
+        file_content, is_fresh = fetch_local_data(instance, f"files/{file_path}")
         
-        if success and file_content:
+        if is_fresh and file_content:
             return jsonify(file_content)
             
+        # Check if we have file content in files_data
+        if instance.files_data and 'file_contents' in instance.files_data:
+            file_contents = instance.files_data['file_contents']
+            if file_path in file_contents:
+                return jsonify(file_contents[file_path])
+                
         return jsonify({'error': 'File content not available'}), 404
             
     except Exception as e:
