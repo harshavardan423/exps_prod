@@ -221,6 +221,38 @@ def user_files(username):
                       instance_status='online' if is_fresh else 'offline')
     
 
+
+
+@app.route('/<username>/file-content/<path:file_path>')
+def get_file_content(username, file_path):
+    # Find the user's instance
+    instance = ExposedInstance.query.filter_by(username=username).first()
+    if not instance:
+        return jsonify({'error': 'User not found'}), 404
+        
+    try:
+        # Check if we have this file in our cached heartbeat data
+        if instance.cached_data and 'files_data' in instance.cached_data:
+            files_data = instance.cached_data['files_data']
+            
+            # If we have a file_contents dictionary with this path
+            if 'file_contents' in files_data and file_path in files_data['file_contents']:
+                return jsonify(files_data['file_contents'][file_path])
+                
+        # If we don't have it cached, we'll try to fetch it from the local instance
+        # This will be a fallback that likely won't work due to IP issues, but keeping for completeness
+        params = {'path': file_path}
+        file_content, success = fetch_local_data(instance, f"files/{file_path}", params)
+        
+        if success and file_content:
+            return jsonify(file_content)
+            
+        return jsonify({'error': 'File content not available'}), 404
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+
 @app.route('/<username>/behaviors')
 def user_behaviors(username):
     instance = ExposedInstance.query.filter_by(username=username).first()
