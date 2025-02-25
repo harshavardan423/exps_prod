@@ -25,7 +25,8 @@ def fetch_local_data(instance, data_type, params=None):
     Returns:
         tuple: (data, is_fresh)
     """
-    now = datetime.utcnow()
+    now = datetime.datetime.utcnow()
+
     
     # Get the cached data based on data_type
     cached_data = None
