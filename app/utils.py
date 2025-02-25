@@ -1,7 +1,6 @@
 import requests
 from flask import render_template_string
 from app.templates import BASE_TEMPLATE
-import datetime
 
 def render_page(username, title, content, instance_status=None):
     return render_template_string(
@@ -12,47 +11,19 @@ def render_page(username, title, content, instance_status=None):
         instance_status=instance_status
     )
 
-def fetch_local_data(instance, data_type, params=None):
-    """
-    Fetch data from instance cache or return cached data
-    
-    Args:
-        instance: ExposedInstance object
-        data_type: Type of data to fetch ('home_data', 'files_data', 'behaviors_data')
-        params: Optional parameters for the request
-    
-    Returns:
-        tuple: (data, is_fresh)
-    """
-    now = datetime.utcnow()
-    
-    # Get the cached data based on data_type
-    cached_data = None
-    if data_type == 'home_data':
-        cached_data = instance.home_data
-    elif data_type == 'files_data':
-        cached_data = instance.files_data
-    elif data_type == 'behaviors_data':
-        cached_data = instance.behaviors_data
-
-    # Check if we have a recent heartbeat (within last 2 minutes)
-    is_fresh = False
-    if instance.last_heartbeat:
-        time_since_heartbeat = (now - instance.last_heartbeat).total_seconds()
-        is_fresh = time_since_heartbeat < 120  # 2 minutes
-
-    # If we have cached data, return it
-    if cached_data is not None:
-        return cached_data, is_fresh
-
-    # If no cached data, return empty structure
-    empty_data = {
-        'home_data': {},
-        'files_data': {'structure': {'folders': [], 'files': []}},
-        'behaviors_data': {'behaviors': [], 'sequences': []}
-    }
-    
-    return empty_data.get(data_type, {}), is_fresh
+def fetch_local_data(instance, endpoint, params=None):
+    try:
+        url = f"{instance.local_url}/api/{endpoint}"
+        response = requests.get(
+            url,
+            params=params,
+            timeout=5
+        )
+        if response.ok:
+            return response.json(), True
+    except Exception as e:
+        print(f"Error fetching data from {endpoint}: {e}")
+    return None, False
 
 
 
