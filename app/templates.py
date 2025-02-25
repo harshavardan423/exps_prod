@@ -118,20 +118,10 @@ FILE_EXPLORER_TEMPLATE = """
     <div class="flex-grow">
         <div class="bg-white border rounded-md">
             <div class="flex items-center justify-between px-4 py-2 bg-gray-50 border-b">
-                <div class="flex items-center space-x-4">
-                    <button onclick="createNewFile()" class="text-sm px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600">
-                        Add file
-                    </button>
-                    <label for="fileUpload" class="text-sm px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 cursor-pointer">
-                        Upload files
-                    </label>
-                    <input type="file" id="fileUpload" class="hidden" multiple>
-                </div>
                 <div class="flex items-center space-x-2">
                     <a id="downloadBtn" href="#" class="text-sm text-gray-600 hover:text-gray-800">
                         <i class="fas fa-download mr-1"></i>Clone in Atom
                     </a>
-
                 </div>
             </div>
 
