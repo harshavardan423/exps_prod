@@ -222,7 +222,7 @@ FILE_EXPLORER_TEMPLATE = """
 
     <!-- Analytics Section -->
     <div class="mt-8 border-t pt-8">
-        <h2 class="text-lg font-semibold mb-4">Repository Analytics</h2>
+        <h2 class="text-lg font-semibold mb-4">Files Insights</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <!-- Commit Activity Graph -->
             <div class="border rounded-lg p-4">
@@ -314,33 +314,53 @@ function createNewFile() {
 }
 
 function viewFile(filePath) {
-    fetch(`/api/files/${filePath}?branch={{ current_branch }}`)
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('viewerFileName').textContent = data.filename;
-            const contentDiv = document.getElementById('fileContent');
-            
-            if (data.mime_type.startsWith('image/')) {
-                contentDiv.innerHTML = `<img src="data:${data.mime_type};base64,${data.content}" class="max-w-full">`;
-            } else if (data.mime_type.startsWith('text/') || data.mime_type === 'application/json') {
-                contentDiv.innerHTML = `<pre class="whitespace-pre-wrap">${data.content}</pre>`;
-            } else {
-                contentDiv.innerHTML = `<div class="text-center">
-                    <p>File type: ${data.mime_type}</p>
-                    <a href="data:${data.mime_type};base64,${data.content}" 
-                       download="${data.filename}" 
-                       class="bg-blue-500 text-white px-4 py-2 rounded mt-4 inline-block">
-                        Download File
-                    </a>
-                </div>`;
+    // Try to fetch from our server-side cache first
+    fetch(`/{{ username }}/file-content/${filePath}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('File content not available');
             }
-            
-            document.getElementById('fileViewerModal').classList.remove('hidden');
+            return response.json();
+        })
+        .then(data => {
+            displayFileContent(data);
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Failed to load file');
+            alert('Failed to load file content');
         });
+}
+
+function displayFileContent(data) {
+    document.getElementById('viewerFileName').textContent = data.filename;
+    const contentDiv = document.getElementById('fileContent');
+    
+    if (data.mime_type.startsWith('image/')) {
+        contentDiv.innerHTML = `<img src="data:${data.mime_type};base64,${data.content}" class="max-w-full">`;
+    } else if (data.mime_type.startsWith('text/') || data.mime_type === 'application/json' || 
+               data.mime_type === 'application/javascript') {
+        contentDiv.innerHTML = `<pre class="whitespace-pre-wrap">${escapeHtml(data.content)}</pre>`;
+    } else {
+        contentDiv.innerHTML = `<div class="text-center">
+            <p>File type: ${data.mime_type}</p>
+            <a href="data:${data.mime_type};base64,${data.content}" 
+                download="${data.filename}" 
+                class="bg-blue-500 text-white px-4 py-2 rounded mt-4 inline-block">
+                Download File
+            </a>
+        </div>`;
+    }
+    
+    document.getElementById('fileViewerModal').classList.remove('hidden');
+}
+
+function escapeHtml(unsafe) {
+    return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
 function closeFileViewer() {
