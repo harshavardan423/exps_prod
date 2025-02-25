@@ -88,71 +88,184 @@ INDEX_TEMPLATE = """
 </html>
 """
 FILE_EXPLORER_TEMPLATE = """
-<div class="mb-4">
-    <div class="flex items-center space-x-2 mb-4">
-        <div class="bg-gray-200 text-gray-700 px-3 py-1 rounded-md text-sm">
-            / {{ current_path }}
+<div class="flex flex-col h-full">
+    <!-- Repository Header -->
+    <div class="border-b pb-4 mb-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <h1 class="text-xl font-semibold">{{ repo_name }}</h1>
+                <span class="px-2 py-1 text-xs border rounded-full">Public</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button class="flex items-center space-x-1 px-3 py-1 border rounded hover:bg-gray-50">
+                    <i class="far fa-star"></i>
+                    <span>Star</span>
+                    <span class="ml-1">{{ stars_count }}</span>
+                </button>
+                <button class="flex items-center space-x-1 px-3 py-1 border rounded hover:bg-gray-50">
+                    <i class="fas fa-code-branch"></i>
+                    <span>Fork</span>
+                    <span class="ml-1">{{ forks_count }}</span>
+                </button>
+            </div>
         </div>
-        <div class="flex-grow"></div>
-        <label for="fileUpload" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm cursor-pointer">
-            <i class="fas fa-upload mr-1"></i> Upload
-        </label>
-        <input type="file" id="fileUpload" class="hidden" multiple>
-        <button onclick="createNewFolder()" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm">
-            <i class="fas fa-folder-plus mr-1"></i> New Folder
-        </button>
+
+        <!-- Branch and Path Navigation -->
+        <div class="flex items-center space-x-4 mt-4">
+            <div class="relative">
+                <button id="branchSelector" class="flex items-center space-x-2 px-3 py-1 border rounded hover:bg-gray-50">
+                    <i class="fas fa-code-branch"></i>
+                    <span>{{ current_branch }}</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <!-- Branch Dropdown (Hidden by default) -->
+                <div id="branchDropdown" class="hidden absolute top-full left-0 mt-1 w-64 bg-white border rounded-md shadow-lg z-10">
+                    <div class="p-2">
+                        <input type="text" placeholder="Find a branch..." class="w-full px-2 py-1 border rounded text-sm">
+                    </div>
+                    <div class="max-h-64 overflow-y-auto">
+                        {% for branch in branches %}
+                        <a href="?branch={{ branch }}" class="block px-4 py-2 hover:bg-gray-50 text-sm">
+                            <i class="fas fa-code-branch mr-2"></i>{{ branch }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex-grow">
+                <div class="bg-gray-50 rounded-md px-3 py-1 text-sm">
+                    <span class="text-gray-500">/</span>
+                    {% for part in path_parts %}
+                    <a href="/{{ username }}/files?path={{ part.path }}" class="text-blue-500 hover:underline">{{ part.name }}</a>
+                    <span class="text-gray-500">/</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
     </div>
-    
-    <div class="bg-white border rounded-md">
-        <div class="flex items-center justify-between px-4 py-2 bg-gray-50 border-b font-medium text-sm">
-            <div class="w-1/2">Name</div>
-            <div class="w-1/4 text-center">Size</div>
-            <div class="w-1/4 text-center">Modified</div>
-        </div>
-        
-        {% if current_path != "" %}
-        <div class="flex items-center px-4 py-2 border-b hover:bg-gray-50">
-            <div class="w-1/2 flex items-center">
-                <i class="fas fa-arrow-up text-gray-500 mr-2"></i>
-                <a href="/{{ username }}/files?path={{ parent_path }}" class="text-blue-500 hover:underline">...</a>
+
+    <!-- File Explorer -->
+    <div class="flex-grow">
+        <div class="bg-white border rounded-md">
+            <div class="flex items-center justify-between px-4 py-2 bg-gray-50 border-b">
+                <div class="flex items-center space-x-4">
+                    <button onclick="createNewFile()" class="text-sm px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600">
+                        Add file
+                    </button>
+                    <label for="fileUpload" class="text-sm px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 cursor-pointer">
+                        Upload files
+                    </label>
+                    <input type="file" id="fileUpload" class="hidden" multiple>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button class="text-sm text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-download mr-1"></i>Download
+                    </button>
+                    <button class="text-sm text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-history mr-1"></i>History
+                    </button>
+                </div>
             </div>
-            <div class="w-1/4 text-center text-gray-500">-</div>
-            <div class="w-1/4 text-center text-gray-500">-</div>
-        </div>
-        {% endif %}
-        
-        {% for item in file_data.folders %}
-        <div class="flex items-center px-4 py-2 border-b hover:bg-gray-50">
-            <div class="w-1/2 flex items-center">
-                <i class="fas fa-folder text-yellow-400 mr-2"></i>
-                <a href="/{{ username }}/files?path={{ current_path_prefix }}{{ item.name }}" class="hover:underline">{{ item.name }}</a>
+
+            <!-- File List -->
+            <div class="divide-y">
+                {% if current_path != "" %}
+                <div class="flex items-center px-4 py-2 hover:bg-gray-50">
+                    <div class="w-1/2 flex items-center">
+                        <i class="fas fa-arrow-up text-gray-500 mr-2"></i>
+                        <a href="/{{ username }}/files?path={{ parent_path }}" class="text-blue-500 hover:underline">...</a>
+                    </div>
+                    <div class="w-1/4 text-center text-gray-500">-</div>
+                    <div class="w-1/4 text-center text-gray-500">-</div>
+                </div>
+                {% endif %}
+
+                {% for item in file_data.folders %}
+                <div class="flex items-center px-4 py-2 hover:bg-gray-50">
+                    <div class="w-1/2 flex items-center">
+                        <i class="fas fa-folder text-yellow-400 mr-2"></i>
+                        <a href="/{{ username }}/files?path={{ current_path_prefix }}{{ item.name }}" class="hover:underline">
+                            {{ item.name }}
+                        </a>
+                    </div>
+                    <div class="w-1/4 text-center text-gray-500">-</div>
+                    <div class="w-1/4 text-right text-gray-500 pr-4">
+                        <span class="text-sm">{{ item.modified }}</span>
+                        <button class="ml-2 text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+
+                {% for item in file_data.files %}
+                <div class="flex items-center px-4 py-2 hover:bg-gray-50">
+                    <div class="w-1/2 flex items-center">
+                        <i class="{{ item.icon }} text-gray-500 mr-2"></i>
+                        <a href="#" onclick="viewFile('{{ current_path_prefix }}{{ item.name }}')" class="hover:underline">
+                            {{ item.name }}
+                        </a>
+                    </div>
+                    <div class="w-1/4 text-center text-gray-500">{{ item.size }}</div>
+                    <div class="w-1/4 text-right text-gray-500 pr-4">
+                        <span class="text-sm">{{ item.modified }}</span>
+                        <button class="ml-2 text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
             </div>
-            <div class="w-1/4 text-center text-gray-500">-</div>
-            <div class="w-1/4 text-center text-gray-500">{{ item.modified }}</div>
         </div>
-        {% endfor %}
-        
-        {% for item in file_data.files %}
-        <div class="flex items-center px-4 py-2 border-b hover:bg-gray-50">
-            <div class="w-1/2 flex items-center">
-                <i class="{{ item.icon }} mr-2 text-gray-500"></i>
-                <a href="#" onclick="viewFile('{{ current_path_prefix }}{{ item.name }}')" class="hover:underline">{{ item.name }}</a>
+    </div>
+
+    <!-- Analytics Section -->
+    <div class="mt-8 border-t pt-8">
+        <h2 class="text-lg font-semibold mb-4">Repository Analytics</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Commit Activity Graph -->
+            <div class="border rounded-lg p-4">
+                <h3 class="text-sm font-medium mb-4">Commit Activity</h3>
+                <div class="h-48 bg-gray-50 rounded flex items-center justify-center">
+                    <!-- Placeholder for commit activity graph -->
+                    <span class="text-gray-400">Commit activity visualization</span>
+                </div>
             </div>
-            <div class="w-1/4 text-center text-gray-500">{{ item.size }}</div>
-            <div class="w-1/4 text-center text-gray-500">{{ item.modified }}</div>
+
+            <!-- Traffic Graph -->
+            <div class="border rounded-lg p-4">
+                <h3 class="text-sm font-medium mb-4">Traffic</h3>
+                <div class="h-48 bg-gray-50 rounded flex items-center justify-center">
+                    <!-- Placeholder for traffic graph -->
+                    <span class="text-gray-400">Traffic visualization</span>
+                </div>
+            </div>
         </div>
-        {% endfor %}
     </div>
 </div>
 
 <!-- File Viewer Modal -->
 <div id="fileViewerModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50">
     <div class="relative w-full max-w-4xl mx-auto mt-10 bg-white rounded-lg">
-        <div class="p-4 border-b">
-            <h3 id="viewerFileName" class="text-lg font-medium"></h3>
-            <button onclick="closeFileViewer()" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
-                <i class="fas fa-times"></i>
-            </button>
+        <div class="p-4 border-b flex items-center justify-between">
+            <div>
+                <h3 id="viewerFileName" class="text-lg font-medium"></h3>
+                <div class="text-sm text-gray-500">
+                    <span id="fileCommitInfo">Last committed 2 days ago</span>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button class="px-3 py-1 border rounded hover:bg-gray-50">
+                    <i class="fas fa-history mr-1"></i>History
+                </button>
+                <button class="px-3 py-1 border rounded hover:bg-gray-50">
+                    <i class="fas fa-edit mr-1"></i>Edit
+                </button>
+                <button onclick="closeFileViewer()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
         </div>
         <div class="p-4 max-h-[70vh] overflow-auto">
             <div id="fileContent"></div>
@@ -161,6 +274,7 @@ FILE_EXPLORER_TEMPLATE = """
 </div>
 
 <script>
+// Existing JavaScript functions...
 document.getElementById('fileUpload').addEventListener('change', function(e) {
     const files = e.target.files;
     if (files.length > 0) {
@@ -171,6 +285,7 @@ document.getElementById('fileUpload').addEventListener('change', function(e) {
 function uploadFiles(files) {
     const formData = new FormData();
     formData.append('path', '{{ current_path }}');
+    formData.append('branch', '{{ current_branch }}');
     
     for (let file of files) {
         formData.append('file', file);
@@ -194,34 +309,12 @@ function uploadFiles(files) {
     });
 }
 
-function createNewFolder() {
-    const folderName = prompt('Enter folder name:');
-    if (folderName) {
-        const formData = new FormData();
-        formData.append('path', '{{ current_path }}');
-        formData.append('folder', JSON.stringify({ name: folderName }));
-
-        fetch('/api/upload', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                window.location.reload();
-            } else {
-                alert('Failed to create folder: ' + data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Failed to create folder');
-        });
-    }
+function createNewFile() {
+    // Implement new file creation logic
 }
 
 function viewFile(filePath) {
-    fetch(`/api/files/${filePath}`)
+    fetch(`/api/files/${filePath}?branch={{ current_branch }}`)
         .then(response => response.json())
         .then(data => {
             document.getElementById('viewerFileName').textContent = data.filename;
@@ -254,5 +347,22 @@ function closeFileViewer() {
     document.getElementById('fileViewerModal').classList.add('hidden');
     document.getElementById('fileContent').innerHTML = '';
 }
+
+// Branch selector functionality
+document.getElementById('branchSelector').addEventListener('click', function() {
+    const dropdown = document.getElementById('branchDropdown');
+    dropdown.classList.toggle('hidden');
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    const dropdown = document.getElementById('branchDropdown');
+    const selector = document.getElementById('branchSelector');
+    if (!dropdown.contains(event.target) && !selector.contains(event.target)) {
+        dropdown.classList.add('hidden');
+    }
+});
+
+// Add any additional JavaScript functions for analytics visualization here
 </script>
 """
