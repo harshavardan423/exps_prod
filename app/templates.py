@@ -88,7 +88,6 @@ INDEX_TEMPLATE = """
 </html>
 """
 
-
 FILE_EXPLORER_TEMPLATE = """
 <div class="flex flex-col h-full">
     <!-- Repository Header -->
@@ -173,30 +172,6 @@ FILE_EXPLORER_TEMPLATE = """
                     </div>
                 </div>
                 {% endfor %}
-            </div>
-        </div>
-    </div>
-
-    <!-- Analytics Section -->
-    <div class="mt-8 border-t pt-8">
-        <h2 class="text-lg font-semibold mb-4">Files Insights</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- Commit Activity Graph -->
-            <div class="border rounded-lg p-4">
-                <h3 class="text-sm font-medium mb-4">Commit Activity</h3>
-                <div class="h-48 bg-gray-50 rounded flex items-center justify-center">
-                    <!-- Placeholder for commit activity graph -->
-                    <span class="text-gray-400">Commit activity visualization</span>
-                </div>
-            </div>
-
-            <!-- Traffic Graph -->
-            <div class="border rounded-lg p-4">
-                <h3 class="text-sm font-medium mb-4">Traffic</h3>
-                <div class="h-48 bg-gray-50 rounded flex items-center justify-center">
-                    <!-- Placeholder for traffic graph -->
-                    <span class="text-gray-400">Traffic visualization</span>
-                </div>
             </div>
         </div>
     </div>
@@ -359,8 +334,5 @@ document.getElementById('downloadBtn').addEventListener('click', function (e) {
             alert('Download failed.');
         });
 });
-
-
-// Add any additional JavaScript functions for analytics visualization here
 </script>
 """
