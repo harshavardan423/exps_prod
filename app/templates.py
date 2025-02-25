@@ -96,43 +96,10 @@ FILE_EXPLORER_TEMPLATE = """
                 <h1 class="text-xl font-semibold">{{ repo_name }}</h1>
                 <span class="px-2 py-1 text-xs border rounded-full">Public</span>
             </div>
-            <div class="flex items-center space-x-2">
-                <button class="flex items-center space-x-1 px-3 py-1 border rounded hover:bg-gray-50">
-                    <i class="far fa-star"></i>
-                    <span>Star</span>
-                    <span class="ml-1">{{ stars_count }}</span>
-                </button>
-                <button class="flex items-center space-x-1 px-3 py-1 border rounded hover:bg-gray-50">
-                    <i class="fas fa-code-branch"></i>
-                    <span>Fork</span>
-                    <span class="ml-1">{{ forks_count }}</span>
-                </button>
-            </div>
         </div>
 
-        <!-- Branch and Path Navigation -->
+        <!-- Path Navigation (Removed Branch Selector) -->
         <div class="flex items-center space-x-4 mt-4">
-            <div class="relative">
-                <button id="branchSelector" class="flex items-center space-x-2 px-3 py-1 border rounded hover:bg-gray-50">
-                    <i class="fas fa-code-branch"></i>
-                    <span>{{ current_branch }}</span>
-                    <i class="fas fa-chevron-down"></i>
-                </button>
-                <!-- Branch Dropdown (Hidden by default) -->
-                <div id="branchDropdown" class="hidden absolute top-full left-0 mt-1 w-64 bg-white border rounded-md shadow-lg z-10">
-                    <div class="p-2">
-                        <input type="text" placeholder="Find a branch..." class="w-full px-2 py-1 border rounded text-sm">
-                    </div>
-                    <div class="max-h-64 overflow-y-auto">
-                        {% for branch in branches %}
-                        <a href="?branch={{ branch }}" class="block px-4 py-2 hover:bg-gray-50 text-sm">
-                            <i class="fas fa-code-branch mr-2"></i>{{ branch }}
-                        </a>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-
             <div class="flex-grow">
                 <div class="bg-gray-50 rounded-md px-3 py-1 text-sm">
                     <span class="text-gray-500">/</span>
@@ -159,12 +126,9 @@ FILE_EXPLORER_TEMPLATE = """
                     <input type="file" id="fileUpload" class="hidden" multiple>
                 </div>
                 <div class="flex items-center space-x-2">
-                    <button class="text-sm text-gray-600 hover:text-gray-800">
+                    <a id="downloadBtn" href="#" class="text-sm text-gray-600 hover:text-gray-800">
                         <i class="fas fa-download mr-1"></i>Download
-                    </button>
-                    <button class="text-sm text-gray-600 hover:text-gray-800">
-                        <i class="fas fa-history mr-1"></i>History
-                    </button>
+                    </a>
                 </div>
             </div>
 
@@ -245,7 +209,7 @@ FILE_EXPLORER_TEMPLATE = """
     </div>
 </div>
 
-<!-- File Viewer Modal -->
+<!-- File Viewer Modal (Removed Edit and History buttons) -->
 <div id="fileViewerModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50">
     <div class="relative w-full max-w-4xl mx-auto mt-10 bg-white rounded-lg">
         <div class="p-4 border-b flex items-center justify-between">
@@ -256,12 +220,9 @@ FILE_EXPLORER_TEMPLATE = """
                 </div>
             </div>
             <div class="flex items-center space-x-2">
-                <button class="px-3 py-1 border rounded hover:bg-gray-50">
-                    <i class="fas fa-history mr-1"></i>History
-                </button>
-                <button class="px-3 py-1 border rounded hover:bg-gray-50">
-                    <i class="fas fa-edit mr-1"></i>Edit
-                </button>
+                <a id="fileDownloadBtn" href="#" class="px-3 py-1 border rounded hover:bg-gray-50">
+                    <i class="fas fa-download mr-1"></i>Download
+                </a>
                 <button onclick="closeFileViewer()" class="text-gray-500 hover:text-gray-700">
                     <i class="fas fa-times"></i>
                 </button>
@@ -335,6 +296,16 @@ function displayFileContent(data) {
     document.getElementById('viewerFileName').textContent = data.filename;
     const contentDiv = document.getElementById('fileContent');
     
+    // Set up download button
+    const downloadBtn = document.getElementById('fileDownloadBtn');
+    downloadBtn.href = `data:${data.mime_type};base64,${data.content}`;
+    downloadBtn.setAttribute('download', data.filename);
+    
+    // Also set up the main download button
+    const mainDownloadBtn = document.getElementById('downloadBtn');
+    mainDownloadBtn.href = `data:${data.mime_type};base64,${data.content}`;
+    mainDownloadBtn.setAttribute('download', data.filename);
+    
     if (data.mime_type.startsWith('image/')) {
         contentDiv.innerHTML = `<img src="data:${data.mime_type};base64,${data.content}" class="max-w-full">`;
     } else if (data.mime_type.startsWith('text/') || data.mime_type === 'application/json' || 
@@ -367,21 +338,6 @@ function closeFileViewer() {
     document.getElementById('fileViewerModal').classList.add('hidden');
     document.getElementById('fileContent').innerHTML = '';
 }
-
-// Branch selector functionality
-document.getElementById('branchSelector').addEventListener('click', function() {
-    const dropdown = document.getElementById('branchDropdown');
-    dropdown.classList.toggle('hidden');
-});
-
-// Close dropdown when clicking outside
-document.addEventListener('click', function(event) {
-    const dropdown = document.getElementById('branchDropdown');
-    const selector = document.getElementById('branchSelector');
-    if (!dropdown.contains(event.target) && !selector.contains(event.target)) {
-        dropdown.classList.add('hidden');
-    }
-});
 
 // Add any additional JavaScript functions for analytics visualization here
 </script>
