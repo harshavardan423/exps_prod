@@ -5,7 +5,7 @@ from app.utils import render_page, fetch_local_data, check_access,get_file_icon
 import uuid
 from datetime import datetime
 from app.templates import INDEX_TEMPLATE, BASE_TEMPLATE,FILE_EXPLORER_TEMPLATE
-from use_atom_auth import require_auth
+from app.use_atom_auth import require_auth
 
 
 # Routes
