@@ -5,6 +5,7 @@ from app.utils import render_page, fetch_local_data, check_access,get_file_icon
 import uuid
 from datetime import datetime
 from app.templates import INDEX_TEMPLATE, BASE_TEMPLATE,FILE_EXPLORER_TEMPLATE
+from use_atom_auth import require_auth
 
 
 # Routes
@@ -26,6 +27,7 @@ def index():
 
 
 @app.route('/<username>/home')
+@require_auth
 def user_home(username):
     instance = ExposedInstance.query.filter_by(username=username).first()
     if not instance:
