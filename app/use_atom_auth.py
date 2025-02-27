@@ -95,13 +95,13 @@ LOGIN_TEMPLATE = """
                         <input type="email" name="email" placeholder="Enter your email" 
                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                     </div>
-                    <div>
+                    <div class="hidden" id="passwordField">
                         <input type="password" id="loginPassword" placeholder="Enter your password" 
                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                     </div>
                     <button type="submit" 
                             class="w-full bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition duration-300">
-                        Sign In
+                        Continue
                     </button>
                 </form>
                 <div id="loginStatus" class="text-center text-sm min-h-6"></div>
@@ -144,6 +144,7 @@ LOGIN_TEMPLATE = """
 
     <script>
         const AUTH_SERVER_URL = "https://atom-auth-prod.onrender.com";
+        const currentUrl = window.location.href;
 
         // Tab switching functionality
         const loginTab = document.getElementById('loginTab');
@@ -196,10 +197,20 @@ LOGIN_TEMPLATE = """
             }
         }
 
-        // Login form handling
+        // Login form handling - maintain original behavior
         document.getElementById("loginForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const email = e.target.querySelector('input[name="email"]').value;
+            const passwordField = document.getElementById("passwordField");
+            
+            if (passwordField.classList.contains("hidden")) {
+                // First submission - just email, show password field
+                passwordField.classList.remove("hidden");
+                e.target.querySelector("button").textContent = "Sign In";
+                return;
+            }
+            
+            // Second submission - email + password
             const password = document.getElementById("loginPassword").value;
             const statusElement = document.getElementById("loginStatus");
             
@@ -207,8 +218,17 @@ LOGIN_TEMPLATE = """
             
             if (data?.access_token) {
                 localStorage.setItem("token", data.access_token);
-                // Refresh the page after successful login
-                setTimeout(() => window.location.reload(), 1000);
+                
+                // Add token to current URL and redirect
+                let redirectUrl = new URL(currentUrl);
+                if (redirectUrl.searchParams.has("email")) {
+                    // Remove email param if it exists
+                    redirectUrl.searchParams.delete("email");
+                }
+                
+                // Redirect to the same page (will now pass the auth check with token in localStorage)
+                statusElement.innerHTML = '<span class="text-green-500">✅ Login successful! Redirecting...</span>';
+                setTimeout(() => window.location.href = redirectUrl.toString(), 1000);
             }
         });
 
@@ -226,7 +246,8 @@ LOGIN_TEMPLATE = """
                 setTimeout(() => {
                     loginTab.click();
                     document.querySelector('input[name="email"]').value = email;
-                    statusElement.innerHTML = '<span class="text-green-500">Account created! Please sign in.</span>';
+                    document.getElementById("passwordField").classList.remove("hidden");
+                    document.getElementById("loginStatus").innerHTML = '<span class="text-green-500">Account created! Please sign in.</span>';
                 }, 1000);
             }
         });
