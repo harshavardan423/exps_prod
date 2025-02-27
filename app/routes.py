@@ -10,6 +10,7 @@ import requests
 
 # Routes
 @app.route('/')
+@require_atom_user
 def index():
     try:
         instances = ExposedInstance.query.all()
@@ -27,6 +28,7 @@ def index():
 
 
 @app.route('/<username>/home')
+@require_atom_user
 def user_home(username):
     instance = ExposedInstance.query.filter_by(username=username).first()
     if not instance:
@@ -226,6 +228,7 @@ def user_files(username):
 
 
 @app.route('/<username>/file-content/<path:file_path>')
+@require_atom_user
 def get_file_content(username, file_path):
     # Find the user's instance
     instance = ExposedInstance.query.filter_by(username=username).first()
