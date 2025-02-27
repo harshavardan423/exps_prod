@@ -27,7 +27,11 @@ def require_atom_user(f):
         if not token:
             if request.content_type == 'application/json':
                 return jsonify({'error': 'Authentication required'}), 401
-            return render_template_string(LOGIN_TEMPLATE, auth_server_url=AUTH_SERVER_URL)
+            return render_template_string(
+                LOGIN_TEMPLATE, 
+                auth_server_url=AUTH_SERVER_URL,
+                return_url=request.url
+            )
         
         # Verify the token with the auth server
         try:
@@ -47,11 +51,12 @@ def require_atom_user(f):
                 return resp
             else:
                 # Clear any invalid tokens
-                resp = make_response(render_template_string(LOGIN_TEMPLATE, auth_server_url=AUTH_SERVER_URL) 
-                                   if request.content_type != 'application/json' 
-                                   else jsonify({'error': 'Invalid authentication'}))
+                resp = make_response(render_template_string(
+                    LOGIN_TEMPLATE, 
+                    auth_server_url=AUTH_SERVER_URL,
+                    return_url=request.url
+                ))
                 resp.delete_cookie('atom_token')
-                resp.delete_cookie('atom_email')
                 session.pop('user_email', None)
                 
                 if request.content_type == 'application/json':
@@ -59,15 +64,13 @@ def require_atom_user(f):
                 return resp
                 
         except Exception as e:
-            # Log the error for debugging
             print(f"Authentication error: {str(e)}")
-            
-            # Clear any invalid data
-            resp = make_response(render_template_string(LOGIN_TEMPLATE, auth_server_url=AUTH_SERVER_URL)
-                               if request.content_type != 'application/json'
-                               else jsonify({'error': f'Authentication error: {str(e)}'}))
+            resp = make_response(render_template_string(
+                LOGIN_TEMPLATE, 
+                auth_server_url=AUTH_SERVER_URL,
+                return_url=request.url
+            ))
             resp.delete_cookie('atom_token')
-            resp.delete_cookie('atom_email')
             session.pop('user_email', None)
             
             if request.content_type == 'application/json':
@@ -107,74 +110,75 @@ LOGIN_TEMPLATE = """
         </div>
     </div>
     <script>
-    document.getElementById('emailForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
+        const returnUrl = "{{ return_url }}";
         
-        const email = document.getElementById('email').value;
-        const submitBtn = document.getElementById('submitBtn');
-        const messageDiv = document.getElementById('message');
-        
-        // Input validation
-        if (!email || !email.includes('@')) {
-            messageDiv.textContent = 'Please enter a valid email address';
-            messageDiv.className = 'mb-4 p-3 rounded-md bg-red-100 text-red-800';
-            messageDiv.classList.remove('hidden');
-            return;
-        }
-        
-        // Disable button and show loading state
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Verifying...';
-        
-        try {
-            const response = await fetch(`{{ auth_server_url }}/check-email`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email })
-            });
+        document.getElementById('emailForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
             
-            const data = await response.json();
+            const email = document.getElementById('email').value;
+            const submitBtn = document.getElementById('submitBtn');
+            const messageDiv = document.getElementById('message');
             
-            if (response.ok) {
-                // Set cookies
-                document.cookie = `atom_email=${email}; path=/; max-age=86400; samesite=lax`;
-                document.cookie = `atom_token=${data.token}; path=/; max-age=86400; samesite=lax`;
-                
-                // Show success message
-                messageDiv.textContent = 'Email verified! Redirecting...';
-                messageDiv.className = 'mb-4 p-3 rounded-md bg-green-100 text-green-800';
-                messageDiv.classList.remove('hidden');
-                
-                // Reload after a short delay to apply the new cookies
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
-            } else {
-                // Show error message
-                messageDiv.textContent = data.error || 'Email not found in Atom system. Please register first.';
-                messageDiv.className = 'mb-4 p-3 rounded-md bg-red-100 text-red-800';
-                messageDiv.classList.remove('hidden');
-                
-                // Reset button
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-check mr-2"></i> Verify Email';
+            // Input validation
+            if (!email || !email.includes('@')) {
+                showMessage('Please enter a valid email address', 'error');
+                return;
             }
-        } catch (error) {
-            console.error('Error:', error);
             
-            // Show error message
-            messageDiv.textContent = 'Error connecting to authentication server. Please try again.';
-            messageDiv.className = 'mb-4 p-3 rounded-md bg-red-100 text-red-800';
+            // Disable button and show loading state
+            setLoadingState(true);
+            
+            try {
+                const response = await fetch(`{{ auth_server_url }}/check-email`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ email })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Set cookies
+                    document.cookie = `atom_email=${email}; path=/; max-age=86400; samesite=lax`;
+                    document.cookie = `atom_token=${data.token}; path=/; max-age=86400; samesite=lax`;
+                    
+                    showMessage('Email verified! Redirecting...', 'success');
+                    
+                    // Redirect to the original URL or reload
+                    setTimeout(() => {
+                        window.location.href = returnUrl || window.location.href;
+                    }, 1000);
+                } else {
+                    showMessage(data.error || 'Email not found in Atom system. Please register first.', 'error');
+                    setLoadingState(false);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('Error connecting to authentication server. Please try again.', 'error');
+                setLoadingState(false);
+            }
+        });
+
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = message;
+            messageDiv.className = `mb-4 p-3 rounded-md ${
+                type === 'error' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
+            }`;
             messageDiv.classList.remove('hidden');
-            
-            // Reset button
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-check mr-2"></i> Verify Email';
         }
-    });
+
+        function setLoadingState(loading) {
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = loading;
+            submitBtn.innerHTML = loading ? 
+                '<i class="fas fa-spinner fa-spin mr-2"></i> Verifying...' :
+                '<i class="fas fa-check mr-2"></i> Verify Email';
+        }
     </script>
 </body>
 </html>
+
 """
