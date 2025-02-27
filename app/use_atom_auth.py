@@ -87,7 +87,7 @@ LOGIN_TEMPLATE = """
         const email = document.getElementById('email').value;
         
         try {
-            const response = await fetch(""" + f'"{AUTH_SERVER_URL}/check-email"' + """, {
+            const response = await fetch(`${AUTH_SERVER_URL}/check-email`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
