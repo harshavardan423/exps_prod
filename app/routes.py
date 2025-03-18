@@ -185,8 +185,12 @@ def user_files(username):
         """)
         
     path = request.args.get('path', '')
-    path_parts = path.strip('/').split('/') if path else []
-    parent_path = '/'.join(path_parts[:-1]) if path_parts else ""
+    # Clean up the path to avoid any double slashes or trailing slashes
+    path = path.strip('/')
+    
+    # Calculate parent path properly
+    path_parts = path.split('/') if path else []
+    parent_path = '/'.join(path_parts[:-1]) if len(path_parts) > 0 else ""
     
     # Try to get real file data from local instance or cached data
     data, is_fresh = fetch_local_data(instance, 'files_data', {'path': path})
@@ -219,15 +223,12 @@ def user_files(username):
         file_data=file_data,
         current_path=path,
         datetime=datetime,
-        current_path_prefix=path + '/' if path else '',
-        parent_path=parent_path
+        parent_path=parent_path,
+        repo_name=username  # Add repo_name for the download button
     )
     
     return render_page(username, "Files", content, 
                       instance_status='online' if is_fresh else 'offline')
-    
-
-
 
 @app.route('/<username>/file-content/<path:file_path>')
 @require_atom_user
