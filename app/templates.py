@@ -243,9 +243,6 @@ function displayFileContent(data, filePath) {
             <div id="rawContentView" class="block">
                 <pre class="whitespace-pre-wrap p-4 bg-gray-50 rounded border">${escapeHtml(data.content)}</pre>
             </div>
-            <div id="renderedContentView" class="hidden">
-                <iframe srcdoc="${escapeHtml(data.content)}" class="w-full h-96 border rounded"></iframe>
-            </div>
         `;
         
         contentDiv.innerHTML = viewOptionsHtml;
@@ -254,16 +251,15 @@ function displayFileContent(data, filePath) {
         setTimeout(() => {
             document.getElementById('viewRawBtn').addEventListener('click', function() {
                 document.getElementById('rawContentView').classList.remove('hidden');
-                document.getElementById('renderedContentView').classList.add('hidden');
                 document.getElementById('viewRawBtn').classList.add('bg-gray-100');
                 document.getElementById('viewRenderedBtn').classList.remove('bg-gray-100');
             });
             
             document.getElementById('viewRenderedBtn').addEventListener('click', function() {
-                document.getElementById('rawContentView').classList.add('hidden');
-                document.getElementById('renderedContentView').classList.remove('hidden');
-                document.getElementById('viewRawBtn').classList.remove('bg-gray-100');
-                document.getElementById('viewRenderedBtn').classList.add('bg-gray-100');
+                // Open in new window
+                const newWindow = window.open('', '_blank');
+                newWindow.document.write(data.content);
+                newWindow.document.close();
             });
         }, 0);
     } else if (data.mime_type.startsWith('image/')) {
