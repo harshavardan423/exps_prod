@@ -172,7 +172,7 @@ def user_files(username):
                         <p class="mb-4">Please enter your email to access this instance:</p>
                         <form method="GET" class="space-y-4">
                             <input type="email" name="email" placeholder="Enter your email" 
-                                    class="w-full px-3 py-2 border rounded" required>
+                                   class="w-full px-3 py-2 border rounded" required>
                             <button type="submit" 
                                     class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
                                 Submit
@@ -192,28 +192,24 @@ def user_files(username):
     path_parts = path.split('/') if path else []
     parent_path = '/'.join(path_parts[:-1]) if len(path_parts) > 0 else ""
     
-    # Try to get real file data from local instance
+    # Try to get real file data from local instance or cached data
     data, is_fresh = fetch_local_data(instance, 'files_data', {'path': path})
     
     if data:
-        # Update cached data for this specific path
-        if instance.files_data is None:
+        # Update cached data for this path
+        if not instance.files_data:
             instance.files_data = {}
         
-        # Store data by path
-        if 'path_data' not in instance.files_data:
-            instance.files_data['path_data'] = {}
-            
-        instance.files_data['path_data'][path] = data.get('structure', {'folders': [], 'files': []})
+        instance.files_data = data
         instance.last_data_sync = datetime.utcnow()
         db.session.commit()
         file_data = data.get('structure', {'folders': [], 'files': []})
-    elif instance.files_data and 'path_data' in instance.files_data and path in instance.files_data['path_data']:
-        # Use cached data for this specific path if available
-        file_data = instance.files_data['path_data'][path]
+    elif instance.files_data:
+        # Use cached data if available
+        file_data = instance.files_data.get('structure', {'folders': [], 'files': []})
     else:
         # Fall back to dummy data if nothing is available
-        file_data = {'folders': [], 'files': []}
+        file_data = get_dummy_files(path)
     
     # Add icons to file data
     for file in file_data.get('files', []):
