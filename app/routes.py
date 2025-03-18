@@ -7,6 +7,7 @@ from datetime import datetime
 from app.templates import INDEX_TEMPLATE, BASE_TEMPLATE,FILE_EXPLORER_TEMPLATE
 from app.use_atom_auth import require_atom_user
 import requests
+from datetime import datetime
 
 # Routes
 @app.route('/')
@@ -217,6 +218,7 @@ def user_files(username):
         username=username,
         file_data=file_data,
         current_path=path,
+        datetime=datetime,
         current_path_prefix=path + '/' if path else '',
         parent_path=parent_path
     )
