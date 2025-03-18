@@ -252,7 +252,7 @@ function viewFile(filePath) {
             return response.json();
         })
         .then(data => {
-            displayFileContent(data);
+            displayFileContent(data, filePath);
         })
         .catch(error => {
             console.error('Error:', error);
@@ -260,7 +260,7 @@ function viewFile(filePath) {
         });
 }
 
-function displayFileContent(data) {
+function displayFileContent(data, filePath) {
     document.getElementById('viewerFileName').textContent = data.filename;
     const contentDiv = document.getElementById('fileContent');
     
@@ -274,11 +274,45 @@ function displayFileContent(data) {
     mainDownloadBtn.href = `data:${data.mime_type};base64,${data.content}`;
     mainDownloadBtn.setAttribute('download', data.filename);
     
-    if (data.mime_type.startsWith('image/')) {
+    // Check if it's an HTML file and provide view options
+    if (data.filename.endsWith('.html') || data.mime_type === 'text/html') {
+        // Create toggle buttons for raw/rendered view
+        const viewOptionsHtml = `
+            <div class="mb-4 flex space-x-2">
+                <button id="viewRawBtn" class="px-3 py-1 border rounded bg-gray-100 hover:bg-gray-200">View Raw</button>
+                <button id="viewRenderedBtn" class="px-3 py-1 border rounded hover:bg-gray-100">View Rendered</button>
+            </div>
+            <div id="rawContentView" class="block">
+                <pre class="whitespace-pre-wrap p-4 bg-gray-50 rounded border">${escapeHtml(data.content)}</pre>
+            </div>
+            <div id="renderedContentView" class="hidden">
+                <iframe srcdoc="${escapeHtml(data.content)}" class="w-full h-96 border rounded"></iframe>
+            </div>
+        `;
+        
+        contentDiv.innerHTML = viewOptionsHtml;
+        
+        // Add event listeners to toggle buttons
+        setTimeout(() => {
+            document.getElementById('viewRawBtn').addEventListener('click', function() {
+                document.getElementById('rawContentView').classList.remove('hidden');
+                document.getElementById('renderedContentView').classList.add('hidden');
+                document.getElementById('viewRawBtn').classList.add('bg-gray-100');
+                document.getElementById('viewRenderedBtn').classList.remove('bg-gray-100');
+            });
+            
+            document.getElementById('viewRenderedBtn').addEventListener('click', function() {
+                document.getElementById('rawContentView').classList.add('hidden');
+                document.getElementById('renderedContentView').classList.remove('hidden');
+                document.getElementById('viewRawBtn').classList.remove('bg-gray-100');
+                document.getElementById('viewRenderedBtn').classList.add('bg-gray-100');
+            });
+        }, 0);
+    } else if (data.mime_type.startsWith('image/')) {
         contentDiv.innerHTML = `<img src="data:${data.mime_type};base64,${data.content}" class="max-w-full">`;
     } else if (data.mime_type.startsWith('text/') || data.mime_type === 'application/json' || 
                data.mime_type === 'application/javascript') {
-        contentDiv.innerHTML = `<pre class="whitespace-pre-wrap">${escapeHtml(data.content)}</pre>`;
+        contentDiv.innerHTML = `<pre class="whitespace-pre-wrap p-4 bg-gray-50 rounded border">${escapeHtml(data.content)}</pre>`;
     } else {
         contentDiv.innerHTML = `<div class="text-center">
             <p>File type: ${data.mime_type}</p>
