@@ -89,7 +89,7 @@ INDEX_TEMPLATE = """
 """
 
 FILE_EXPLORER_TEMPLATE = """
-<!-- File Explorer Template with Path Navigation Fix -->
+<!-- File Explorer Template with Fixed Path Navigation -->
 <div class="flex flex-col h-full">
     <!-- Repository Header -->
     <div class="border-b pb-4 mb-4">
@@ -106,12 +106,13 @@ FILE_EXPLORER_TEMPLATE = """
                 <div class="bg-gray-50 rounded-md px-3 py-1 text-sm breadcrumbs">
                     <a href="/{{ username }}/files" class="text-blue-500 hover:underline">root</a>
                     {% if current_path %}
-                        {% set path_accumulator = '' %}
-                        {% for path_part in current_path.split('/') %}
-                            {% if path_part %}
-                                {% set path_accumulator = path_accumulator + '/' + path_part %}
+                        {% set path_parts = current_path.split('/') %}
+                        {% set accumulated_path = '' %}
+                        {% for part in path_parts %}
+                            {% if part %}
+                                {% set accumulated_path = accumulated_path + '/' + part %}
                                 <span class="text-gray-500">/</span>
-                                <a href="/{{ username }}/files?path={{ path_accumulator[1:] }}" class="text-blue-500 hover:underline">{{ path_part }}</a>
+                                <a href="/{{ username }}/files?path={{ accumulated_path[1:] }}" class="text-blue-500 hover:underline">{{ part }}</a>
                             {% endif %}
                         {% endfor %}
                     {% endif %}
@@ -137,7 +138,7 @@ FILE_EXPLORER_TEMPLATE = """
                 <div class="flex items-center px-4 py-2 hover:bg-gray-50">
                     <div class="w-1/2 flex items-center">
                         <i class="fas fa-arrow-up text-gray-500 mr-2"></i>
-                        <a href="/{{ username }}/files?path={{ parent_path }}" class="text-blue-500 hover:underline">Parent Directory</a>
+                        <a href="/{{ username }}/files{% if parent_path %}?path={{ parent_path }}{% endif %}" class="text-blue-500 hover:underline">Parent Directory</a>
                     </div>
                     <div class="w-1/4 text-center text-gray-500">-</div>
                     <div class="w-1/4 text-center text-gray-500">-</div>
@@ -148,7 +149,7 @@ FILE_EXPLORER_TEMPLATE = """
                 <div class="flex items-center px-4 py-2 hover:bg-gray-50">
                     <div class="w-1/2 flex items-center">
                         <i class="fas fa-folder text-yellow-400 mr-2"></i>
-                        <a href="/{{ username }}/files?path={{ current_path_prefix }}{{ item.name }}" class="hover:underline">
+                        <a href="/{{ username }}/files?path={{ (current_path + '/' + item.name).strip('/') }}" class="hover:underline">
                             {{ item.name }}
                         </a>
                     </div>
@@ -163,7 +164,7 @@ FILE_EXPLORER_TEMPLATE = """
                 <div class="flex items-center px-4 py-2 hover:bg-gray-50">
                     <div class="w-1/2 flex items-center">
                         <i class="{{ item.icon }} text-gray-500 mr-2"></i>
-                        <a href="#" onclick="viewFile('{{ current_path_prefix }}{{ item.name }}')" class="hover:underline">
+                        <a href="#" onclick="viewFile('{{ (current_path + '/' + item.name).strip('/') }}')" class="hover:underline">
                             {{ item.name }}
                         </a>
                     </div>
@@ -230,11 +231,6 @@ function displayFileContent(data, filePath) {
     const downloadBtn = document.getElementById('fileDownloadBtn');
     downloadBtn.href = `data:${data.mime_type};base64,${data.content}`;
     downloadBtn.setAttribute('download', data.filename);
-    
-    // Also set up the main download button
-    const mainDownloadBtn = document.getElementById('downloadBtn');
-    mainDownloadBtn.href = `data:${data.mime_type};base64,${data.content}`;
-    mainDownloadBtn.setAttribute('download', data.filename);
     
     // Check if it's an HTML file and provide view options
     if (data.filename.endsWith('.html') || data.mime_type === 'text/html') {
@@ -332,6 +328,3 @@ document.getElementById('downloadBtn').addEventListener('click', function (e) {
 });
 </script>
 """
-
-
-
