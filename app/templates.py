@@ -89,25 +89,32 @@ INDEX_TEMPLATE = """
 """
 
 FILE_EXPLORER_TEMPLATE = """
+<!-- File Explorer Template with Path Navigation Fix -->
 <div class="flex flex-col h-full">
     <!-- Repository Header -->
     <div class="border-b pb-4 mb-4">
         <div class="flex items-center justify-between">
             <div class="flex items-center space-x-4">
-                <h1 class="text-xl font-semibold">{{ repo_name }}</h1>
+                <h1 class="text-xl font-semibold">File Explorer</h1>
                 <span class="px-2 py-1 text-xs border rounded-full">Public</span>
             </div>
         </div>
 
-        <!-- Path Navigation (Removed Branch Selector) -->
+        <!-- Path Navigation -->
         <div class="flex items-center space-x-4 mt-4">
             <div class="flex-grow">
-                <div class="bg-gray-50 rounded-md px-3 py-1 text-sm">
-                    <span class="text-gray-500">/</span>
-                    {% for part in path_parts %}
-                    <a href="/{{ username }}/files?path={{ part.path }}" class="text-blue-500 hover:underline">{{ part.name }}</a>
-                    <span class="text-gray-500">/</span>
-                    {% endfor %}
+                <div class="bg-gray-50 rounded-md px-3 py-1 text-sm breadcrumbs">
+                    <a href="/{{ username }}/files" class="text-blue-500 hover:underline">root</a>
+                    {% if current_path %}
+                        {% set path_accumulator = '' %}
+                        {% for path_part in current_path.split('/') %}
+                            {% if path_part %}
+                                {% set path_accumulator = path_accumulator + '/' + path_part %}
+                                <span class="text-gray-500">/</span>
+                                <a href="/{{ username }}/files?path={{ path_accumulator[1:] }}" class="text-blue-500 hover:underline">{{ path_part }}</a>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -130,7 +137,7 @@ FILE_EXPLORER_TEMPLATE = """
                 <div class="flex items-center px-4 py-2 hover:bg-gray-50">
                     <div class="w-1/2 flex items-center">
                         <i class="fas fa-arrow-up text-gray-500 mr-2"></i>
-                        <a href="/{{ username }}/files?path={{ parent_path }}" class="text-blue-500 hover:underline">...</a>
+                        <a href="/{{ username }}/files?path={{ parent_path }}" class="text-blue-500 hover:underline">Parent Directory</a>
                     </div>
                     <div class="w-1/4 text-center text-gray-500">-</div>
                     <div class="w-1/4 text-center text-gray-500">-</div>
@@ -148,9 +155,6 @@ FILE_EXPLORER_TEMPLATE = """
                     <div class="w-1/4 text-center text-gray-500">-</div>
                     <div class="w-1/4 text-right text-gray-500 pr-4">
                         <span class="text-sm">{{ item.modified }}</span>
-                        <button class="ml-2 text-gray-400 hover:text-gray-600">
-                            <i class="fas fa-ellipsis-h"></i>
-                        </button>
                     </div>
                 </div>
                 {% endfor %}
@@ -166,9 +170,6 @@ FILE_EXPLORER_TEMPLATE = """
                     <div class="w-1/4 text-center text-gray-500">{{ item.size }}</div>
                     <div class="w-1/4 text-right text-gray-500 pr-4">
                         <span class="text-sm">{{ item.modified }}</span>
-                        <button class="ml-2 text-gray-400 hover:text-gray-600">
-                            <i class="fas fa-ellipsis-h"></i>
-                        </button>
                     </div>
                 </div>
                 {% endfor %}
@@ -177,14 +178,14 @@ FILE_EXPLORER_TEMPLATE = """
     </div>
 </div>
 
-<!-- File Viewer Modal (Removed Edit and History buttons) -->
+<!-- File Viewer Modal with HTML View Options -->
 <div id="fileViewerModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50">
     <div class="relative w-full max-w-4xl mx-auto mt-10 bg-white rounded-lg">
         <div class="p-4 border-b flex items-center justify-between">
             <div>
                 <h3 id="viewerFileName" class="text-lg font-medium"></h3>
                 <div class="text-sm text-gray-500">
-                    <span id="fileCommitInfo">Last committed 2 days ago</span>
+                    <span id="fileCommitInfo">Last accessed {{ datetime.now().strftime('%Y-%m-%d') }}</span>
                 </div>
             </div>
             <div class="flex items-center space-x-2">
@@ -203,45 +204,6 @@ FILE_EXPLORER_TEMPLATE = """
 </div>
 
 <script>
-// Existing JavaScript functions...
-document.getElementById('fileUpload').addEventListener('change', function(e) {
-    const files = e.target.files;
-    if (files.length > 0) {
-        uploadFiles(files);
-    }
-});
-
-function uploadFiles(files) {
-    const formData = new FormData();
-    formData.append('path', '{{ current_path }}');
-    formData.append('branch', '{{ current_branch }}');
-    
-    for (let file of files) {
-        formData.append('file', file);
-    }
-
-    fetch('/api/upload', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            window.location.reload();
-        } else {
-            alert('Upload failed: ' + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Upload failed');
-    });
-}
-
-function createNewFile() {
-    // Implement new file creation logic
-}
-
 function viewFile(filePath) {
     // Try to fetch from our server-side cache first
     fetch(`/{{ username }}/file-content/${filePath}`)
