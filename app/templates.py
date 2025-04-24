@@ -141,7 +141,7 @@ FILE_EXPLORER_TEMPLATE = """
                 <div class="flex items-center px-4 py-2 hover:bg-gray-50">
                     <div class="w-1/2 flex items-center">
                         <i class="fas fa-folder text-yellow-400 mr-2"></i>
-                        <a href="/{{ username }}/files?path={{ (current_path + '/' + item.name) if current_path else item.name }}" class="hover:underline">
+                        <a href="/{{ username }}/files?path={{ current_path_prefix }}{{ item.name }}" class="hover:underline">
                             {{ item.name }}
                         </a>
                     </div>
@@ -336,6 +336,3 @@ document.getElementById('downloadBtn').addEventListener('click', function (e) {
 });
 </script>
 """
-
-
-
