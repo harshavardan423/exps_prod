@@ -158,39 +158,31 @@ def user_files(username):
         return jsonify({'error': 'User not found'}), 404
     
     if not check_access(instance, request):
-        return render_template_string("""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Access Required</title>
-                <script src="https://cdn.tailwindcss.com"></script>
-            </head>
-            <body class="bg-gray-100">
-                <div class="container mx-auto px-4 py-8">
-                    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-                        <h1 class="text-2xl font-bold mb-4">Access Required</h1>
-                        <p class="mb-4">Please enter your email to access this instance:</p>
-                        <form method="GET" class="space-y-4">
-                            <input type="email" name="email" placeholder="Enter your email" 
-                                   class="w-full px-3 py-2 border rounded" required>
-                            <button type="submit" 
-                                    class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                                Submit
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </body>
-            </html>
-        """)
+        # Your existing access control code
+        return render_template_string("""...""")
         
+    # Get path from URL and normalize it
     path = request.args.get('path', '')
-    # Clean up the path to avoid any double slashes or trailing slashes
-    path = path.strip('/')
+    path = path.strip('/')  # This is good, keep it
     
-    # Calculate parent path properly
-    path_parts = path.split('/') if path else []
-    parent_path = '/'.join(path_parts[:-1]) if len(path_parts) > 0 else ""
+    # Calculate parent path and prepare breadcrumb path parts
+    path_parts = []
+    if path:
+        parts = path.split('/')
+        parent_path = '/'.join(parts[:-1])
+        
+        # Build path parts for breadcrumb navigation
+        current = ""
+        for i, part in enumerate(parts):
+            if not part:  # Skip empty parts
+                continue
+            current = (current + "/" + part) if current else part
+            path_parts.append({"name": part, "path": current})
+    else:
+        parent_path = ""
+    
+    # Prepare path prefix for constructing new paths
+    current_path_prefix = path + "/" if path else ""
     
     # Try to get real file data from local instance or cached data
     data, is_fresh = fetch_local_data(instance, 'files_data', {'path': path})
@@ -222,9 +214,11 @@ def user_files(username):
         username=username,
         file_data=file_data,
         current_path=path,
+        current_path_prefix=current_path_prefix,
         datetime=datetime,
         parent_path=parent_path,
-        repo_name=username  # Add repo_name for the download button
+        path_parts=path_parts,
+        repo_name=username
     )
     
     return render_page(username, "Files", content, 
