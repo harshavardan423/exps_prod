@@ -89,26 +89,33 @@ INDEX_TEMPLATE = """
 """
 
 FILE_EXPLORER_TEMPLATE = """
+<!-- File Explorer Template with Fixed Path Navigation -->
 <div class="flex flex-col h-full">
     <!-- Repository Header -->
     <div class="border-b pb-4 mb-4">
         <div class="flex items-center justify-between">
             <div class="flex items-center space-x-4">
-                <h1 class="text-xl font-semibold">{{ repo_name }}</h1>
+                <h1 class="text-xl font-semibold">File Explorer</h1>
                 <span class="px-2 py-1 text-xs border rounded-full">Public</span>
             </div>
         </div>
 
-        <!-- Path Navigation (Removed Branch Selector) -->
+        <!-- Path Navigation -->
         <div class="flex items-center space-x-4 mt-4">
             <div class="flex-grow">
-                <div class="bg-gray-50 rounded-md px-3 py-1 text-sm">
-                    <span class="text-gray-500">/</span>
-                    {% for part in path_parts %}
-                    <!-- Update the folder navigation link -->
-                    <a href="/{{ username }}/files?path={{ current_path_prefix }}{{ item.name }}" class="hover:underline">
-                    <span class="text-gray-500">/</span>
-                    {% endfor %}
+                <div class="bg-gray-50 rounded-md px-3 py-1 text-sm breadcrumbs">
+                    <a href="/{{ username }}/files" class="text-blue-500 hover:underline">root</a>
+                    {% if current_path %}
+                        {% set path_parts = current_path.split('/') %}
+                        {% set accumulated_path = '' %}
+                        {% for part in path_parts %}
+                            {% if part %}
+                                {% set accumulated_path = accumulated_path + '/' + part %}
+                                <span class="text-gray-500">/</span>
+                                <a href="/{{ username }}/files?path={{ accumulated_path[1:] }}" class="text-blue-500 hover:underline">{{ part }}</a>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -131,7 +138,7 @@ FILE_EXPLORER_TEMPLATE = """
                 <div class="flex items-center px-4 py-2 hover:bg-gray-50">
                     <div class="w-1/2 flex items-center">
                         <i class="fas fa-arrow-up text-gray-500 mr-2"></i>
-                        <a href="/{{ username }}/files?path={{ parent_path }}" class="text-blue-500 hover:underline">...</a>
+                        <a href="/{{ username }}/files{% if parent_path %}?path={{ parent_path }}{% endif %}" class="text-blue-500 hover:underline">Parent Directory</a>
                     </div>
                     <div class="w-1/4 text-center text-gray-500">-</div>
                     <div class="w-1/4 text-center text-gray-500">-</div>
@@ -142,16 +149,13 @@ FILE_EXPLORER_TEMPLATE = """
                 <div class="flex items-center px-4 py-2 hover:bg-gray-50">
                     <div class="w-1/2 flex items-center">
                         <i class="fas fa-folder text-yellow-400 mr-2"></i>
-                        <a href="/{{ username }}/files?path={{ current_path_prefix }}{{ item.name }}" class="hover:underline">
+                        <a href="/{{ username }}/files?path={{ (current_path + '/' + item.name).strip('/') }}" class="hover:underline">
                             {{ item.name }}
                         </a>
                     </div>
                     <div class="w-1/4 text-center text-gray-500">-</div>
                     <div class="w-1/4 text-right text-gray-500 pr-4">
                         <span class="text-sm">{{ item.modified }}</span>
-                        <button class="ml-2 text-gray-400 hover:text-gray-600">
-                            <i class="fas fa-ellipsis-h"></i>
-                        </button>
                     </div>
                 </div>
                 {% endfor %}
@@ -160,16 +164,13 @@ FILE_EXPLORER_TEMPLATE = """
                 <div class="flex items-center px-4 py-2 hover:bg-gray-50">
                     <div class="w-1/2 flex items-center">
                         <i class="{{ item.icon }} text-gray-500 mr-2"></i>
-                        <a href="#" onclick="viewFile('{{ current_path_prefix }}{{ item.name }}')" class="hover:underline">
+                        <a href="#" onclick="viewFile('{{ (current_path + '/' + item.name).strip('/') }}')" class="hover:underline">
                             {{ item.name }}
                         </a>
                     </div>
                     <div class="w-1/4 text-center text-gray-500">{{ item.size }}</div>
                     <div class="w-1/4 text-right text-gray-500 pr-4">
                         <span class="text-sm">{{ item.modified }}</span>
-                        <button class="ml-2 text-gray-400 hover:text-gray-600">
-                            <i class="fas fa-ellipsis-h"></i>
-                        </button>
                     </div>
                 </div>
                 {% endfor %}
@@ -178,14 +179,14 @@ FILE_EXPLORER_TEMPLATE = """
     </div>
 </div>
 
-<!-- File Viewer Modal (Removed Edit and History buttons) -->
+<!-- File Viewer Modal with HTML View Options -->
 <div id="fileViewerModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50">
     <div class="relative w-full max-w-4xl mx-auto mt-10 bg-white rounded-lg">
         <div class="p-4 border-b flex items-center justify-between">
             <div>
                 <h3 id="viewerFileName" class="text-lg font-medium"></h3>
                 <div class="text-sm text-gray-500">
-                    <span id="fileCommitInfo">Last committed 2 days ago</span>
+                    <span id="fileCommitInfo">Last accessed {{ datetime.now().strftime('%Y-%m-%d') }}</span>
                 </div>
             </div>
             <div class="flex items-center space-x-2">
@@ -204,45 +205,6 @@ FILE_EXPLORER_TEMPLATE = """
 </div>
 
 <script>
-// Existing JavaScript functions...
-document.getElementById('fileUpload').addEventListener('change', function(e) {
-    const files = e.target.files;
-    if (files.length > 0) {
-        uploadFiles(files);
-    }
-});
-
-function uploadFiles(files) {
-    const formData = new FormData();
-    formData.append('path', '{{ current_path }}');
-    formData.append('branch', '{{ current_branch }}');
-    
-    for (let file of files) {
-        formData.append('file', file);
-    }
-
-    fetch('/api/upload', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            window.location.reload();
-        } else {
-            alert('Upload failed: ' + data.error);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('Upload failed');
-    });
-}
-
-function createNewFile() {
-    // Implement new file creation logic
-}
-
 function viewFile(filePath) {
     // Try to fetch from our server-side cache first
     fetch(`/{{ username }}/file-content/${filePath}`)
@@ -253,7 +215,7 @@ function viewFile(filePath) {
             return response.json();
         })
         .then(data => {
-            displayFileContent(data);
+            displayFileContent(data, filePath);
         })
         .catch(error => {
             console.error('Error:', error);
@@ -261,7 +223,7 @@ function viewFile(filePath) {
         });
 }
 
-function displayFileContent(data) {
+function displayFileContent(data, filePath) {
     document.getElementById('viewerFileName').textContent = data.filename;
     const contentDiv = document.getElementById('fileContent');
     
@@ -270,16 +232,41 @@ function displayFileContent(data) {
     downloadBtn.href = `data:${data.mime_type};base64,${data.content}`;
     downloadBtn.setAttribute('download', data.filename);
     
-    // Also set up the main download button
-    const mainDownloadBtn = document.getElementById('downloadBtn');
-    mainDownloadBtn.href = `data:${data.mime_type};base64,${data.content}`;
-    mainDownloadBtn.setAttribute('download', data.filename);
-    
-    if (data.mime_type.startsWith('image/')) {
+    // Check if it's an HTML file and provide view options
+    if (data.filename.endsWith('.html') || data.mime_type === 'text/html') {
+        // Create toggle buttons for raw/rendered view
+        const viewOptionsHtml = `
+            <div class="mb-4 flex space-x-2">
+                <button id="viewRawBtn" class="px-3 py-1 border rounded bg-gray-100 hover:bg-gray-200">View Raw</button>
+                <button id="viewRenderedBtn" class="px-3 py-1 border rounded hover:bg-gray-100">View Rendered</button>
+            </div>
+            <div id="rawContentView" class="block">
+                <pre class="whitespace-pre-wrap p-4 bg-gray-50 rounded border">${escapeHtml(data.content)}</pre>
+            </div>
+        `;
+        
+        contentDiv.innerHTML = viewOptionsHtml;
+        
+        // Add event listeners to toggle buttons
+        setTimeout(() => {
+            document.getElementById('viewRawBtn').addEventListener('click', function() {
+                document.getElementById('rawContentView').classList.remove('hidden');
+                document.getElementById('viewRawBtn').classList.add('bg-gray-100');
+                document.getElementById('viewRenderedBtn').classList.remove('bg-gray-100');
+            });
+            
+            document.getElementById('viewRenderedBtn').addEventListener('click', function() {
+                // Open in new window
+                const newWindow = window.open('', '_blank');
+                newWindow.document.write(data.content);
+                newWindow.document.close();
+            });
+        }, 0);
+    } else if (data.mime_type.startsWith('image/')) {
         contentDiv.innerHTML = `<img src="data:${data.mime_type};base64,${data.content}" class="max-w-full">`;
     } else if (data.mime_type.startsWith('text/') || data.mime_type === 'application/json' || 
                data.mime_type === 'application/javascript') {
-        contentDiv.innerHTML = `<pre class="whitespace-pre-wrap">${escapeHtml(data.content)}</pre>`;
+        contentDiv.innerHTML = `<pre class="whitespace-pre-wrap p-4 bg-gray-50 rounded border">${escapeHtml(data.content)}</pre>`;
     } else {
         contentDiv.innerHTML = `<div class="text-center">
             <p>File type: ${data.mime_type}</p>
