@@ -201,7 +201,8 @@ def user_files(username):
             path_parts.append({"name": part, "path": current})
     else:
         parent_path = ""
-    
+
+    print(f"Requesting content for path: '{path}'")
     # Try to get real file data from local instance or cached data
     data, is_fresh = fetch_local_data(instance, 'files_data', {'path': path})
     
