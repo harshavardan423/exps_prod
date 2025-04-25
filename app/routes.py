@@ -184,8 +184,23 @@ def user_files(username):
         """)
         
     path = request.args.get('path', '')
-    path_parts = path.strip('/').split('/') if path else []
-    parent_path = '/'.join(path_parts[:-1]) if path_parts else ""
+    path = path.strip('/')  # Strip slashes but normalize how paths are constructed
+
+    # Calculate parent path and prepare breadcrumb path parts
+    path_parts = []
+    if path:
+        parts = path.split('/')
+        parent_path = '/'.join(parts[:-1])
+        
+        # Build path parts for breadcrumb navigation
+        current = ""
+        for i, part in enumerate(parts):
+            if not part:  # Skip empty parts
+                continue
+            current = (current + "/" + part) if current else part
+            path_parts.append({"name": part, "path": current})
+    else:
+        parent_path = ""
     
     # Try to get real file data from local instance or cached data
     data, is_fresh = fetch_local_data(instance, 'files_data', {'path': path})
