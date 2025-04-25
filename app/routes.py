@@ -7,6 +7,7 @@ from datetime import datetime
 from app.templates import INDEX_TEMPLATE, BASE_TEMPLATE,FILE_EXPLORER_TEMPLATE
 from app.use_atom_auth import require_atom_user
 import requests
+from datetime import datetime
 
 # Routes
 @app.route('/')
@@ -184,25 +185,13 @@ def user_files(username):
         """)
         
     path = request.args.get('path', '')
-    path = path.strip('/')  # Strip slashes but normalize how paths are constructed
-
-    # Calculate parent path and prepare breadcrumb path parts
-    path_parts = []
-    if path:
-        parts = path.split('/')
-        parent_path = '/'.join(parts[:-1])
-        
-        # Build path parts for breadcrumb navigation
-        current = ""
-        for i, part in enumerate(parts):
-            if not part:  # Skip empty parts
-                continue
-            current = (current + "/" + part) if current else part
-            path_parts.append({"name": part, "path": current})
-    else:
-        parent_path = ""
-
-    print(f"Requesting content for path: '{path}'")
+    # Clean up the path to avoid any double slashes or trailing slashes
+    path = path.strip('/')
+    
+    # Calculate parent path properly
+    path_parts = path.split('/') if path else []
+    parent_path = '/'.join(path_parts[:-1]) if len(path_parts) > 0 else ""
+    
     # Try to get real file data from local instance or cached data
     data, is_fresh = fetch_local_data(instance, 'files_data', {'path': path})
     
@@ -233,15 +222,13 @@ def user_files(username):
         username=username,
         file_data=file_data,
         current_path=path,
-        current_path_prefix=path + '/' if path else '',
-        parent_path=parent_path
+        datetime=datetime,
+        parent_path=parent_path,
+        repo_name=username  # Add repo_name for the download button
     )
     
     return render_page(username, "Files", content, 
                       instance_status='online' if is_fresh else 'offline')
-    
-
-
 
 @app.route('/<username>/file-content/<path:file_path>')
 @require_atom_user
