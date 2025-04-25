@@ -105,7 +105,8 @@ FILE_EXPLORER_TEMPLATE = """
                 <div class="bg-gray-50 rounded-md px-3 py-1 text-sm">
                     <span class="text-gray-500">/</span>
                     {% for part in path_parts %}
-                    <a href="/{{ username }}/files?path={{ part.path }}" class="text-blue-500 hover:underline">{{ part.name }}</a>
+                    <!-- Update the folder navigation link -->
+                    <a href="/{{ username }}/files?path={{ current_path_prefix }}{{ item.name }}" class="hover:underline">
                     <span class="text-gray-500">/</span>
                     {% endfor %}
                 </div>
