@@ -33,7 +33,11 @@ def check_access(instance, request):
     # Get email from query params
     user_email = request.args.get('email')
     
-    # Try to fetch allowed_users from local instance
+    # If no email provided, deny access
+    if not user_email:
+        return False
+    
+    # First, try to fetch allowed_users from local instance (for most up-to-date data)
     try:
         response = requests.get(f"{instance.local_url}/api/allowed_users", timeout=3)
         if response.ok:
@@ -44,9 +48,17 @@ def check_access(instance, request):
             # Check if user email is in allowed users
             return user_email in allowed_users
     except Exception as e:
-        print(f"Error checking access: {e}")
+        print(f"Error checking access from local instance: {e}")
     
-    # If we can't get the allowed users list, default to allowing access
+    # If we couldn't fetch from local instance, use stored allowed_users
+    if instance.allowed_users:
+        # If no allowed users set, allow all access
+        if not instance.allowed_users:
+            return True
+        # Check if user email is in allowed users
+        return user_email in instance.allowed_users
+    
+    # If we have no allowed users data, default to allowing access
     # You might want to change this based on your security requirements
     return True
 
