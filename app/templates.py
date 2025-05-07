@@ -227,10 +227,43 @@ function displayFileContent(data, filePath) {
     document.getElementById('viewerFileName').textContent = data.filename;
     const contentDiv = document.getElementById('fileContent');
     
-    // Set up download button
+    // Set up download button with direct Blob approach
     const downloadBtn = document.getElementById('fileDownloadBtn');
-    downloadBtn.href = `/{{ username }}/download/${filePath}`;
-    downloadBtn.setAttribute('download', data.filename);
+    downloadBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        // Convert base64 to blob
+        const byteCharacters = atob(data.content);
+        const byteArrays = [];
+        
+        for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+            const slice = byteCharacters.slice(offset, offset + 512);
+            
+            const byteNumbers = new Array(slice.length);
+            for (let i = 0; i < slice.length; i++) {
+                byteNumbers[i] = slice.charCodeAt(i);
+            }
+            
+            const byteArray = new Uint8Array(byteNumbers);
+            byteArrays.push(byteArray);
+        }
+        
+        const blob = new Blob(byteArrays, {type: data.mime_type});
+        const url = window.URL.createObjectURL(blob);
+        
+        // Create temporary anchor and trigger download
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = data.filename;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Clean up
+        setTimeout(() => {
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }, 100);
+    });
     
     // Check if it's an HTML file and provide view options
     if (data.filename.endsWith('.html') || data.mime_type === 'text/html') {
