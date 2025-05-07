@@ -35,8 +35,32 @@ def user_home(username):
     if not instance:
         return jsonify({'error': 'User not found'}), 404
 
-    # The access check is now handled in the require_atom_user decorator
-    # So we just need to fetch the data
+    if not check_access(instance, request):
+        return render_template_string("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Access Required</title>
+                <script src="https://cdn.tailwindcss.com"></script>
+            </head>
+            <body class="bg-gray-100">
+                <div class="container mx-auto px-4 py-8">
+                    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+                        <h1 class="text-2xl font-bold mb-4">Access Required</h1>
+                        <p class="mb-4">Please enter your email to access this instance:</p>
+                        <form method="GET" class="space-y-4">
+                            <input type="email" name="email" placeholder="Enter your email" 
+                                    class="w-full px-3 py-2 border rounded" required>
+                            <button type="submit" 
+                                    class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                                Submit
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </body>
+            </html>
+        """)
 
     data, is_fresh = fetch_local_data(instance, 'home_data')
     if data:
@@ -133,8 +157,33 @@ def user_files(username):
     if not instance:
         return jsonify({'error': 'User not found'}), 404
     
-    # The access check is now handled in the require_atom_user decorator
-    
+    if not check_access(instance, request):
+        return render_template_string("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Access Required</title>
+                <script src="https://cdn.tailwindcss.com"></script>
+            </head>
+            <body class="bg-gray-100">
+                <div class="container mx-auto px-4 py-8">
+                    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+                        <h1 class="text-2xl font-bold mb-4">Access Required</h1>
+                        <p class="mb-4">Please enter your email to access this instance:</p>
+                        <form method="GET" class="space-y-4">
+                            <input type="email" name="email" placeholder="Enter your email" 
+                                   class="w-full px-3 py-2 border rounded" required>
+                            <button type="submit" 
+                                    class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                                Submit
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </body>
+            </html>
+        """)
+        
     path = request.args.get('path', '')
     # Clean up the path to avoid any double slashes or trailing slashes
     path = path.strip('/')
@@ -160,7 +209,7 @@ def user_files(username):
         file_data = instance.files_data.get('structure', {'folders': [], 'files': []})
     else:
         # Fall back to dummy data if nothing is available
-        file_data = {'folders': [], 'files': []}
+        file_data = get_dummy_files(path)
     
     # Add icons to file data
     for file in file_data.get('files', []):
