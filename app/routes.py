@@ -342,6 +342,18 @@ def register_instance():
             instance.files_data = initial_data.get('files_data')
             instance.behaviors_data = initial_data.get('behaviors_data')
             instance.last_data_sync = datetime.utcnow()
+            
+            # Get allowed_users from home_data if available
+            if 'home_data' in initial_data and 'allowed_users' in initial_data['home_data']:
+                instance.allowed_users = initial_data['home_data']['allowed_users']
+            else:
+                # Try to fetch allowed_users directly
+                try:
+                    response = requests.get(f"{local_url}/api/allowed_users", timeout=3)
+                    if response.ok:
+                        instance.allowed_users = response.json().get('allowed_users', [])
+                except Exception as e:
+                    print(f"Error fetching allowed_users during registration: {e}")
         
         db.session.commit()
         return jsonify(instance.to_dict()), 200
