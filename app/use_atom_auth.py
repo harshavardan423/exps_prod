@@ -8,49 +8,53 @@ def require_atom_user(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         # Check if user is already authenticated in session
-        if session.get('user_email'):
-            return f(*args, **kwargs)
-        
-        # Check for token in cookies
-        token = request.cookies.get('atom_token')
-        
-        # Check for token in Authorization header
-        if not token:
-            auth_header = request.headers.get('Authorization')
-            if auth_header:
-                if auth_header.startswith('Bearer '):
-                    token = auth_header.split(' ')[1]
-                else:
-                    token = auth_header
-        
-        # If no token is found, show login template
-        if not token:
-            if request.content_type == 'application/json':
-                return jsonify({'error': 'Authentication required'}), 401
-            return render_template_string(
-                LOGIN_TEMPLATE, 
-                auth_server_url=AUTH_SERVER_URL,
-                return_url=request.url
-            )
-        
-        # Verify the token with the auth server
-        try:
-            response = requests.post(
-                f"{AUTH_SERVER_URL}/verify",
-                headers={"Authorization": f"Bearer {token}"}
-            )
+        if not session.get('user_email'):
+            # Authentication logic (unchanged)
+            token = request.cookies.get('atom_token')
             
-            if response.status_code == 200:
-                user_data = response.json()
-                session['user_email'] = user_data.get('email')
+            if not token:
+                auth_header = request.headers.get('Authorization')
+                if auth_header:
+                    if auth_header.startswith('Bearer '):
+                        token = auth_header.split(' ')[1]
+                    else:
+                        token = auth_header
+            
+            if not token:
+                if request.content_type == 'application/json':
+                    return jsonify({'error': 'Authentication required'}), 401
+                return render_template_string(
+                    LOGIN_TEMPLATE, 
+                    auth_server_url=AUTH_SERVER_URL,
+                    return_url=request.url
+                )
+            
+            # Verify the token with the auth server
+            try:
+                response = requests.post(
+                    f"{AUTH_SERVER_URL}/verify",
+                    headers={"Authorization": f"Bearer {token}"}
+                )
                 
-                # Create a response that includes the original response and sets cookies
-                resp = make_response(f(*args, **kwargs))
-                resp.set_cookie('atom_token', token, httponly=True, samesite='Lax', max_age=86400)  # 24 hours
-                
-                return resp
-            else:
-                # Clear any invalid tokens
+                if response.status_code == 200:
+                    user_data = response.json()
+                    session['user_email'] = user_data.get('email')
+                else:
+                    # Clear any invalid tokens
+                    resp = make_response(render_template_string(
+                        LOGIN_TEMPLATE, 
+                        auth_server_url=AUTH_SERVER_URL,
+                        return_url=request.url
+                    ))
+                    resp.delete_cookie('atom_token')
+                    session.pop('user_email', None)
+                    
+                    if request.content_type == 'application/json':
+                        return jsonify({'error': 'Invalid authentication'}), 401
+                    return resp
+                    
+            except Exception as e:
+                print(f"Authentication error: {str(e)}")
                 resp = make_response(render_template_string(
                     LOGIN_TEMPLATE, 
                     auth_server_url=AUTH_SERVER_URL,
@@ -60,23 +64,71 @@ def require_atom_user(f):
                 session.pop('user_email', None)
                 
                 if request.content_type == 'application/json':
-                    return jsonify({'error': 'Invalid authentication'}), 401
+                    return jsonify({'error': f'Authentication error: {str(e)}'}), 401
                 return resp
+        
+        # Now check for instance-specific access control
+        # This only applies to routes with username parameter
+        if 'username' in kwargs:
+            username = kwargs.get('username')
+            from app.models import ExposedInstance  # Import here to avoid circular imports
+            
+            instance = ExposedInstance.query.filter_by(username=username).first()
+            if not instance:
+                return jsonify({'error': 'User instance not found'}), 404
+            
+            user_email = session.get('user_email')
+            
+            # Check if user has access to this instance
+            has_access = False
+            try:
+                response = requests.get(f"{instance.local_url}/api/allowed_users", timeout=3)
+                if response.ok:
+                    allowed_users = response.json().get('allowed_users', [])
+                    # If allowed_users is empty, assume public access is intended
+                    has_access = not allowed_users or user_email in allowed_users
+            except Exception as e:
+                # On error, default to no access (safer)
+                print(f"Error checking access: {e}")
+                has_access = False
+            
+            # If no access, show access denied page
+            if not has_access:
+                if request.content_type == 'application/json':
+                    return jsonify({'error': 'Access denied to this instance'}), 403
                 
-        except Exception as e:
-            print(f"Authentication error: {str(e)}")
-            resp = make_response(render_template_string(
-                LOGIN_TEMPLATE, 
-                auth_server_url=AUTH_SERVER_URL,
-                return_url=request.url
-            ))
-            resp.delete_cookie('atom_token')
-            session.pop('user_email', None)
-            
-            if request.content_type == 'application/json':
-                return jsonify({'error': f'Authentication error: {str(e)}'}), 401
-            return resp
-            
+                return render_template_string("""
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>Access Denied</title>
+                        <script src="https://cdn.tailwindcss.com"></script>
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    </head>
+                    <body class="bg-gray-100">
+                        <div class="container mx-auto px-4 py-8">
+                            <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+                                <h1 class="text-2xl font-bold mb-4 text-red-600">Access Denied</h1>
+                                <p class="mb-4">You don't have permission to access this instance.</p>
+                                <p class="mb-6">Your email: <strong>{{ email }}</strong> is not in the allowed users list.</p>
+                                <div class="mt-6">
+                                    <a href="/" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                                        Return to Home
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                """, email=user_email)
+        
+        # Create a response with the token cookie
+        resp = make_response(f(*args, **kwargs))
+        if token := request.cookies.get('atom_token'):
+            resp.set_cookie('atom_token', token, httponly=True, samesite='Lax', max_age=86400)  # 24 hours
+        
+        return resp
+    
     return decorated_function
 
 LOGIN_TEMPLATE = """
