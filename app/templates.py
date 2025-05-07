@@ -227,42 +227,59 @@ function displayFileContent(data, filePath) {
     document.getElementById('viewerFileName').textContent = data.filename;
     const contentDiv = document.getElementById('fileContent');
     
-    // Set up download button with direct Blob approach
+    // Set up download button with improved handling for all file types
     const downloadBtn = document.getElementById('fileDownloadBtn');
     downloadBtn.addEventListener('click', function(e) {
         e.preventDefault();
         
-        // Convert base64 to blob
-        const byteCharacters = atob(data.content);
-        const byteArrays = [];
-        
-        for (let offset = 0; offset < byteCharacters.length; offset += 512) {
-            const slice = byteCharacters.slice(offset, offset + 512);
+        try {
+            // Handle different content formats based on file type
+            let binaryContent;
             
-            const byteNumbers = new Array(slice.length);
-            for (let i = 0; i < slice.length; i++) {
-                byteNumbers[i] = slice.charCodeAt(i);
+            // For text files, we might need special handling
+            if (data.mime_type.startsWith('text/') || 
+                data.mime_type === 'application/json' || 
+                data.mime_type === 'application/javascript') {
+                
+                try {
+                    // First try to decode as base64
+                    binaryContent = atob(data.content);
+                } catch (decodeError) {
+                    // If not valid base64, use the content directly
+                    // Convert string content to binary
+                    const encoder = new TextEncoder();
+                    binaryContent = String.fromCharCode(...encoder.encode(data.content));
+                }
+            } else {
+                // For binary files, decode from base64
+                binaryContent = atob(data.content);
             }
             
-            const byteArray = new Uint8Array(byteNumbers);
-            byteArrays.push(byteArray);
+            // Convert to array buffer
+            const bytes = new Uint8Array(binaryContent.length);
+            for (let i = 0; i < binaryContent.length; i++) {
+                bytes[i] = binaryContent.charCodeAt(i);
+            }
+            
+            // Create blob and download
+            const blob = new Blob([bytes], {type: data.mime_type || 'application/octet-stream'});
+            const url = window.URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = data.filename;
+            document.body.appendChild(a);
+            a.click();
+            
+            // Clean up
+            setTimeout(() => {
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }, 100);
+        } catch (err) {
+            console.error("Download error:", err);
+            alert("There was a problem downloading the file. Please try again.");
         }
-        
-        const blob = new Blob(byteArrays, {type: data.mime_type});
-        const url = window.URL.createObjectURL(blob);
-        
-        // Create temporary anchor and trigger download
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = data.filename;
-        document.body.appendChild(a);
-        a.click();
-        
-        // Clean up
-        setTimeout(() => {
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-        }, 100);
     });
     
     // Check if it's an HTML file and provide view options
