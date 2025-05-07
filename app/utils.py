@@ -30,8 +30,11 @@ def fetch_local_data(instance, endpoint, params=None):
 
 def check_access(instance, request):
     """Check if current user has access to the instance"""
-    # Get email from query params
-    user_email = request.args.get('email')
+    # Get email from session (set by require_atom_user)
+    user_email = session.get('user_email')
+    
+    if not user_email:
+        return False
     
     # Try to fetch allowed_users from local instance
     try:
@@ -46,9 +49,8 @@ def check_access(instance, request):
     except Exception as e:
         print(f"Error checking access: {e}")
     
-    # If we can't get the allowed users list, default to allowing access
-    # You might want to change this based on your security requirements
-    return True
+    # If we can't get the allowed users list, default to denying access
+    return False
 
 def get_file_icon(filename):
     """Get appropriate Font Awesome icon for file type"""
