@@ -376,11 +376,23 @@ def heartbeat(token):
             if data:
                 if 'home_data' in data:
                     instance.home_data = data['home_data']
+                    # Extract allowed_users from home_data if available
+                    if 'allowed_users' in data['home_data']:
+                        instance.allowed_users = data['home_data']['allowed_users']
                 if 'files_data' in data:
                     instance.files_data = data['files_data']
                 if 'behaviors_data' in data:
                     instance.behaviors_data = data['behaviors_data']
                 instance.last_data_sync = datetime.utcnow()
+        
+        # If allowed_users wasn't in the home_data, try to fetch it directly
+        if not instance.allowed_users:
+            try:
+                response = requests.get(f"{instance.local_url}/api/allowed_users", timeout=3)
+                if response.ok:
+                    instance.allowed_users = response.json().get('allowed_users', [])
+            except Exception as e:
+                print(f"Error fetching allowed_users during heartbeat: {e}")
         
         db.session.commit()
         return jsonify({'status': 'ok'}), 200
