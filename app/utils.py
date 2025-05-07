@@ -30,31 +30,25 @@ def fetch_local_data(instance, endpoint, params=None):
 
 def check_access(instance, request):
     """Check if current user has access to the instance"""
-    # Get email from either query parameter or session
-    user_email = request.args.get('email') or session.get('user_email')
-    
-    if not user_email:
-        return False
+    # Get email from query params
+    user_email = request.args.get('email')
     
     # Try to fetch allowed_users from local instance
     try:
-        response = requests.get(f"{instance.local_url}/api/allowed_users", timeout=5)
-        if response.status_code == 200:
+        response = requests.get(f"{instance.local_url}/api/allowed_users", timeout=3)
+        if response.ok:
             allowed_users = response.json().get('allowed_users', [])
-            # If no allowed users are set, allow all access
+            # If no allowed users set, allow all access
             if not allowed_users:
                 return True
             # Check if user email is in allowed users
-            has_access = user_email in allowed_users
-            print(f"Access check for {user_email}: {has_access}. Allowed users: {allowed_users}")
-            return has_access
-        else:
-            print(f"Failed to get allowed users, status code: {response.status_code}")
+            return user_email in allowed_users
     except Exception as e:
         print(f"Error checking access: {e}")
     
-    # If we can't get the allowed users list, default to denying access
-    return False
+    # If we can't get the allowed users list, default to allowing access
+    # You might want to change this based on your security requirements
+    return True
 
 def get_file_icon(filename):
     """Get appropriate Font Awesome icon for file type"""
@@ -82,4 +76,3 @@ def get_file_icon(filename):
     }
     
     return icons.get(ext, 'fas fa-file')
-
