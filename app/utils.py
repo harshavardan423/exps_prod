@@ -30,22 +30,26 @@ def fetch_local_data(instance, endpoint, params=None):
 
 def check_access(instance, request):
     """Check if current user has access to the instance"""
-    # Get email from session (set by require_atom_user)
-    user_email = session.get('user_email')
+    # Get email from either query parameter or session
+    user_email = request.args.get('email') or session.get('user_email')
     
     if not user_email:
         return False
     
     # Try to fetch allowed_users from local instance
     try:
-        response = requests.get(f"{instance.local_url}/api/allowed_users", timeout=3)
-        if response.ok:
+        response = requests.get(f"{instance.local_url}/api/allowed_users", timeout=5)
+        if response.status_code == 200:
             allowed_users = response.json().get('allowed_users', [])
-            # If no allowed users set, allow all access
+            # If no allowed users are set, allow all access
             if not allowed_users:
                 return True
             # Check if user email is in allowed users
-            return user_email in allowed_users
+            has_access = user_email in allowed_users
+            print(f"Access check for {user_email}: {has_access}. Allowed users: {allowed_users}")
+            return has_access
+        else:
+            print(f"Failed to get allowed users, status code: {response.status_code}")
     except Exception as e:
         print(f"Error checking access: {e}")
     
