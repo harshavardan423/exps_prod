@@ -112,7 +112,7 @@ FILE_EXPLORER_TEMPLATE = """
                             {% if part %}
                                 {% set accumulated_path = accumulated_path + '/' + part %}
                                 <span class="text-gray-500">/</span>
-                                <a href="/{{ username }}/files?path={{ accumulated_path[1:] }}" class="text-blue-500 hover:underline">{{ part }}</a>
+                                <a href="/{{ username }}/files?path={{ accumulated_path[1:] | urlencode }}" class="text-blue-500 hover:underline">{{ part }}</a>
                             {% endif %}
                         {% endfor %}
                     {% endif %}
@@ -138,7 +138,7 @@ FILE_EXPLORER_TEMPLATE = """
                 <div class="flex items-center px-4 py-2 hover:bg-gray-50">
                     <div class="w-1/2 flex items-center">
                         <i class="fas fa-arrow-up text-gray-500 mr-2"></i>
-                        <a href="/{{ username }}/files{% if parent_path %}?path={{ parent_path }}{% endif %}" class="text-blue-500 hover:underline">Parent Directory</a>
+                        <a href="/{{ username }}/files{% if parent_path %}?path={{ parent_path | urlencode }}{% endif %}" class="text-blue-500 hover:underline">Parent Directory</a>
                     </div>
                     <div class="w-1/4 text-center text-gray-500">-</div>
                     <div class="w-1/4 text-center text-gray-500">-</div>
@@ -149,7 +149,7 @@ FILE_EXPLORER_TEMPLATE = """
                 <div class="flex items-center px-4 py-2 hover:bg-gray-50">
                     <div class="w-1/2 flex items-center">
                         <i class="fas fa-folder text-yellow-400 mr-2"></i>
-                        <a href="/{{ username }}/files?path={{ (current_path + '/' + item.name).strip('/') }}" class="hover:underline">
+                        <a href="/{{ username }}/files?path={{ (current_path + '/' + item.name).strip('/') | urlencode }}" class="hover:underline">
                             {{ item.name }}
                         </a>
                     </div>
