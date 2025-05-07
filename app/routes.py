@@ -152,7 +152,6 @@ def user_home(username):
 
 
 @app.route('/<username>/api/upload', methods=['POST'])
-@require_atom_user
 def proxy_upload(username):
     # Find the user's instance
     instance = ExposedInstance.query.filter_by(username=username).first()
