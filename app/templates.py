@@ -125,10 +125,16 @@ FILE_EXPLORER_TEMPLATE = """
     <div class="flex-grow">
         <div class="bg-white border rounded-md">
             <div class="flex items-center justify-between px-4 py-2 bg-gray-50 border-b">
-                <div class="flex items-center space-x-2">
+                <div class="flex items-center space-x-4">
                     <a id="downloadBtn" href="#" class="text-sm text-gray-600 hover:text-gray-800">
                         <i class="fas fa-download mr-1"></i>Clone in Atom
                     </a>
+                    <button id="uploadBtn" class="text-sm text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-upload mr-1"></i>Upload
+                    </button>
+                    <button id="newFolderBtn" class="text-sm text-gray-600 hover:text-gray-800">
+                        <i class="fas fa-folder-plus mr-1"></i>New Folder
+                    </button>
                 </div>
             </div>
 
@@ -200,6 +206,69 @@ FILE_EXPLORER_TEMPLATE = """
         </div>
         <div class="p-4 max-h-[70vh] overflow-auto">
             <div id="fileContent"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Modal -->
+<div id="uploadModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50">
+    <div class="relative w-full max-w-lg mx-auto mt-20 bg-white rounded-lg">
+        <div class="p-4 border-b flex items-center justify-between">
+            <h3 class="text-lg font-medium">Upload Files</h3>
+            <button onclick="closeUploadModal()" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="p-6">
+            <form id="uploadForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Select Files</label>
+                    <input type="file" id="fileInput" multiple 
+                           class="w-full px-3 py-2 border rounded text-sm">
+                </div>
+                <div id="uploadStatus" class="text-sm"></div>
+                <div class="flex justify-end space-x-2">
+                    <button type="button" onclick="closeUploadModal()" 
+                            class="px-4 py-2 border rounded hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="button" onclick="uploadFiles()" 
+                            class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                        Upload
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- New Folder Modal -->
+<div id="newFolderModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50">
+    <div class="relative w-full max-w-md mx-auto mt-20 bg-white rounded-lg">
+        <div class="p-4 border-b flex items-center justify-between">
+            <h3 class="text-lg font-medium">Create New Folder</h3>
+            <button onclick="closeNewFolderModal()" class="text-gray-500 hover:text-gray-700">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="p-6">
+            <form id="newFolderForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Folder Name</label>
+                    <input type="text" id="folderNameInput" 
+                           class="w-full px-3 py-2 border rounded" required>
+                </div>
+                <div class="flex justify-end space-x-2">
+                    <button type="button" onclick="closeNewFolderModal()" 
+                            class="px-4 py-2 border rounded hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="button" onclick="createFolder()" 
+                            class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                        Create
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -341,6 +410,108 @@ function closeFileViewer() {
     document.getElementById('fileContent').innerHTML = '';
 }
 
+// Upload functionality
+function showUploadModal() {
+    document.getElementById('uploadModal').classList.remove('hidden');
+    document.getElementById('uploadStatus').innerHTML = '';
+}
+
+function closeUploadModal() {
+    document.getElementById('uploadModal').classList.add('hidden');
+    document.getElementById('fileInput').value = '';
+    document.getElementById('uploadStatus').innerHTML = '';
+}
+
+function uploadFiles() {
+    const fileInput = document.getElementById('fileInput');
+    const files = fileInput.files;
+    
+    if (files.length === 0) {
+        document.getElementById('uploadStatus').innerHTML = 
+            '<p class="text-red-500">Please select at least one file to upload</p>';
+        return;
+    }
+    
+    const formData = new FormData();
+    for (let i = 0; i < files.length; i++) {
+        formData.append('file', files[i]);
+    }
+    
+    // Add current path
+    formData.append('path', '{{ current_path }}');
+    
+    document.getElementById('uploadStatus').innerHTML = 
+        '<p class="text-blue-500">Uploading files...</p>';
+    
+    fetch(`/{{ username }}/api/upload`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            document.getElementById('uploadStatus').innerHTML = 
+                '<p class="text-green-500">Files uploaded successfully!</p>';
+            
+            // Reload the page after a short delay
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            document.getElementById('uploadStatus').innerHTML = 
+                `<p class="text-red-500">Upload failed: ${data.error || 'Unknown error'}</p>`;
+        }
+    })
+    .catch(error => {
+        console.error('Upload error:', error);
+        document.getElementById('uploadStatus').innerHTML = 
+            '<p class="text-red-500">Upload failed. Please try again.</p>';
+    });
+}
+
+// New folder functionality
+function showNewFolderModal() {
+    document.getElementById('newFolderModal').classList.remove('hidden');
+    document.getElementById('folderNameInput').value = '';
+}
+
+function closeNewFolderModal() {
+    document.getElementById('newFolderModal').classList.add('hidden');
+}
+
+function createFolder() {
+    const folderName = document.getElementById('folderNameInput').value.trim();
+    
+    if (!folderName) {
+        alert('Please enter a folder name');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('path', '{{ current_path }}');
+    formData.append('folder', JSON.stringify({ name: folderName }));
+    
+    fetch(`/{{ username }}/api/upload`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            closeNewFolderModal();
+            // Reload the page to show the new folder
+            window.location.reload();
+        } else {
+            alert(`Failed to create folder: ${data.error || 'Unknown error'}`);
+        }
+    })
+    .catch(error => {
+        console.error('Error creating folder:', error);
+        alert('Failed to create folder. Please try again.');
+    });
+}
+
+// Add event listeners for buttons
 document.getElementById('downloadBtn').addEventListener('click', function (e) {
     e.preventDefault(); // Prevents default link behavior
     const repoName = "{{ repo_name }}";
@@ -368,5 +539,8 @@ document.getElementById('downloadBtn').addEventListener('click', function (e) {
             alert('Download failed.');
         });
 });
+
+document.getElementById('uploadBtn').addEventListener('click', showUploadModal);
+document.getElementById('newFolderBtn').addEventListener('click', showNewFolderModal);
 </script>
 """
