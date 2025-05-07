@@ -1,6 +1,5 @@
 from app import db
 from datetime import datetime
-
 class ExposedInstance(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, nullable=False)
@@ -12,6 +11,7 @@ class ExposedInstance(db.Model):
     home_data = db.Column(db.JSON, nullable=True)
     files_data = db.Column(db.JSON, nullable=True)
     behaviors_data = db.Column(db.JSON, nullable=True)
+    allowed_users = db.Column(db.JSON, nullable=True)  # Added field for allowed_users
     last_data_sync = db.Column(db.DateTime, nullable=True)
     
     def to_dict(self):
