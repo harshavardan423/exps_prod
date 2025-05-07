@@ -229,7 +229,7 @@ function displayFileContent(data, filePath) {
     
     // Set up download button
     const downloadBtn = document.getElementById('fileDownloadBtn');
-    downloadBtn.href = `data:${data.mime_type};base64,${data.content}`;
+    downloadBtn.href = `/{{ username }}/download/${filePath}`;
     downloadBtn.setAttribute('download', data.filename);
     
     // Check if it's an HTML file and provide view options
@@ -270,11 +270,7 @@ function displayFileContent(data, filePath) {
     } else {
         contentDiv.innerHTML = `<div class="text-center">
             <p>File type: ${data.mime_type}</p>
-            <a href="data:${data.mime_type};base64,${data.content}" 
-                download="${data.filename}" 
-                class="bg-blue-500 text-white px-4 py-2 rounded mt-4 inline-block">
-                Download File
-            </a>
+            <p class="mt-2">Click the download button above to download this file.</p>
         </div>`;
     }
     
