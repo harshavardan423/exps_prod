@@ -151,6 +151,41 @@ def user_home(username):
 
 
 
+@app.route('/<username>/api/upload', methods=['POST'])
+@require_atom_user
+def proxy_upload(username):
+    # Find the user's instance
+    instance = ExposedInstance.query.filter_by(username=username).first()
+    if not instance:
+        return jsonify({'error': 'User not found'}), 404
+    
+    if not check_access(instance, request):
+        return jsonify({'error': 'Access denied'}), 403
+    
+    # Forward the upload request to the local instance
+    try:
+        # Get the form data and files
+        files = request.files
+        form_data = request.form
+        
+        # Create a new multipart request to forward to the local instance
+        upload_url = f"{instance.local_url}/api/upload"
+        
+        # Forward the request
+        response = requests.post(
+            upload_url,
+            files={key: (files[key].filename, files[key].read(), files[key].content_type) 
+                  for key in files},
+            data=form_data,
+            timeout=10
+        )
+        
+        # Return the response from the local instance
+        return jsonify(response.json()), response.status_code
+        
+    except Exception as e:
+        return jsonify({'error': str(e), 'status': 'error'}), 500
+
 @app.route('/<username>/download/<path:file_path>')
 @require_atom_user
 def download_file(username, file_path):
