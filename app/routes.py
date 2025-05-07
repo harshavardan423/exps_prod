@@ -150,6 +150,58 @@ def user_home(username):
                       instance_status='online' if is_fresh else 'offline')
 
 
+
+@app.route('/<username>/download/<path:file_path>')
+@require_atom_user
+def download_file(username, file_path):
+    # Find the user's instance
+    instance = ExposedInstance.query.filter_by(username=username).first()
+    if not instance:
+        return jsonify({'error': 'User not found'}), 404
+        
+    try:
+        # Fetch file content directly from the local instance
+        file_content, is_fresh = fetch_local_data(instance, f"files/{file_path}")
+        
+        if is_fresh and file_content:
+            # Create proper response with content type and disposition
+            from flask import send_file, BytesIO
+            import base64
+            
+            # Decode base64 content
+            file_data = base64.b64decode(file_content['content'])
+            
+            # Create a BytesIO object
+            file_io = BytesIO(file_data)
+            
+            # Return file for download
+            return send_file(
+                file_io,
+                mimetype=file_content['mime_type'],
+                as_attachment=True,
+                download_name=file_content['filename']
+            )
+                
+        # Check if we have file content in files_data
+        if instance.files_data and 'file_contents' in instance.files_data:
+            file_contents = instance.files_data['file_contents']
+            if file_path in file_contents:
+                file_content = file_contents[file_path]
+                file_data = base64.b64decode(file_content['content'])
+                file_io = BytesIO(file_data)
+                
+                return send_file(
+                    file_io,
+                    mimetype=file_content['mime_type'],
+                    as_attachment=True,
+                    download_name=file_content['filename']
+                )
+                
+        return jsonify({'error': 'File content not available'}), 404
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+        
 @app.route('/<username>/files')
 @require_atom_user
 def user_files(username):
