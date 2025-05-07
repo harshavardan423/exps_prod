@@ -77,50 +77,96 @@ def require_atom_user(f):
             if not instance:
                 return jsonify({'error': 'User instance not found'}), 404
             
-            user_email = session.get('user_email')
-            
             # Check if user has access to this instance
-            has_access = False
-            try:
-                response = requests.get(f"{instance.local_url}/api/allowed_users", timeout=3)
-                if response.ok:
-                    allowed_users = response.json().get('allowed_users', [])
-                    # If allowed_users is empty, assume public access is intended
-                    has_access = not allowed_users or user_email in allowed_users
-            except Exception as e:
-                # On error, default to no access (safer)
-                print(f"Error checking access: {e}")
-                has_access = False
-            
-            # If no access, show access denied page
-            if not has_access:
-                if request.content_type == 'application/json':
-                    return jsonify({'error': 'Access denied to this instance'}), 403
+            if request.args.get('email'):
+                # If the user provided an email through the query string, use that
+                user_email = request.args.get('email')
+                session['user_email'] = user_email  # Update the session with the provided email
+            else:
+                user_email = session.get('user_email')
                 
-                return render_template_string("""
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                        <title>Access Denied</title>
-                        <script src="https://cdn.tailwindcss.com"></script>
-                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    </head>
-                    <body class="bg-gray-100">
-                        <div class="container mx-auto px-4 py-8">
-                            <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-                                <h1 class="text-2xl font-bold mb-4 text-red-600">Access Denied</h1>
-                                <p class="mb-4">You don't have permission to access this instance.</p>
-                                <p class="mb-6">Your email: <strong>{{ email }}</strong> is not in the allowed users list.</p>
-                                <div class="mt-6">
-                                    <a href="/" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                                        Return to Home
-                                    </a>
+            # Skip access check if this is the email access page itself
+            if 'email' in request.args and not request.path.endswith('/home'):
+                # If we're not on the home page but have an email parameter, proceed to the home page first
+                return redirect(f"/{username}/home?email={user_email}")
+            
+            # Only check access if we have a valid instance URL
+            has_access = False
+            if instance.local_url:
+                try:
+                    # Get the list of allowed users from the instance
+                    response = requests.get(f"{instance.local_url}/api/allowed_users", timeout=5)
+                    if response.status_code == 200:
+                        allowed_users = response.json().get('allowed_users', [])
+                        # If allowed_users is empty, assume public access is intended
+                        has_access = not allowed_users or user_email in allowed_users
+                        print(f"Access check for {user_email}: {has_access}. Allowed users: {allowed_users}")
+                    else:
+                        print(f"Failed to get allowed users, status code: {response.status_code}")
+                        # For safety, deny access if we can't get the allowed users list
+                        has_access = False
+                except Exception as e:
+                    print(f"Error checking access: {e}")
+                    has_access = False
+            
+            # If no access, show access check page
+            if not has_access:
+                # Special handling for email parameter - show email input form
+                if request.args.get('email') is None:
+                    return render_template_string("""
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <title>Access Required</title>
+                            <script src="https://cdn.tailwindcss.com"></script>
+                        </head>
+                        <body class="bg-gray-100">
+                            <div class="container mx-auto px-4 py-8">
+                                <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+                                    <h1 class="text-2xl font-bold mb-4">Access Required</h1>
+                                    <p class="mb-4">Please enter your email to access this instance:</p>
+                                    <form method="GET" class="space-y-4">
+                                        <input type="email" name="email" placeholder="Enter your email" 
+                                                class="w-full px-3 py-2 border rounded" required>
+                                        <button type="submit" 
+                                                class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                                            Submit
+                                        </button>
+                                    </form>
                                 </div>
                             </div>
-                        </div>
-                    </body>
-                    </html>
-                """, email=user_email)
+                        </body>
+                        </html>
+                    """)
+                else:
+                    # If email was provided but access is denied, show access denied page
+                    if request.content_type == 'application/json':
+                        return jsonify({'error': 'Access denied to this instance'}), 403
+                    
+                    return render_template_string("""
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <title>Access Denied</title>
+                            <script src="https://cdn.tailwindcss.com"></script>
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        </head>
+                        <body class="bg-gray-100">
+                            <div class="container mx-auto px-4 py-8">
+                                <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+                                    <h1 class="text-2xl font-bold mb-4 text-red-600">Access Denied</h1>
+                                    <p class="mb-4">You don't have permission to access this instance.</p>
+                                    <p class="mb-6">Your email: <strong>{{ email }}</strong> is not in the allowed users list.</p>
+                                    <div class="mt-6">
+                                        <a href="/" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                                            Return to Home
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </body>
+                        </html>
+                    """, email=user_email)
         
         # Create a response with the token cookie
         resp = make_response(f(*args, **kwargs))
