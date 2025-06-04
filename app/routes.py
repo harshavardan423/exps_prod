@@ -163,27 +163,49 @@ def proxy_upload(username):
     
     # Forward the upload request to the local instance
     try:
-        # Get the form data and files
-        files = request.files
-        form_data = request.form
-        
-        # Create a new multipart request to forward to the local instance
         upload_url = f"{instance.local_url}/api/upload"
         
-        # Forward the request
+        # Create files dict for forwarding
+        files_to_forward = {}
+        for key in request.files:
+            file_obj = request.files[key]
+            if file_obj:
+                # Reset file pointer to beginning
+                file_obj.seek(0)
+                files_to_forward[key] = (
+                    file_obj.filename, 
+                    file_obj.stream, 
+                    file_obj.content_type
+                )
+        
+        # Forward the request with proper file handling
         response = requests.post(
             upload_url,
-            files={key: (files[key].filename, files[key].read(), files[key].content_type) 
-                  for key in files},
-            data=form_data,
-            timeout=10
+            files=files_to_forward,
+            data=request.form.to_dict(),  # Forward form data including path
+            timeout=30  # Longer timeout for uploads
         )
         
         # Return the response from the local instance
-        return jsonify(response.json()), response.status_code
+        if response.status_code == 200:
+            try:
+                return jsonify(response.json()), response.status_code
+            except:
+                return jsonify({'status': 'success', 'message': 'Upload completed'}), 200
+        else:
+            try:
+                error_data = response.json()
+                return jsonify(error_data), response.status_code
+            except:
+                return jsonify({'error': f'Upload failed with status {response.status_code}'}), response.status_code
         
+    except requests.exceptions.Timeout:
+        return jsonify({'error': 'Upload timed out', 'status': 'error'}), 408
+    except requests.exceptions.ConnectionError:
+        return jsonify({'error': 'Could not connect to local instance', 'status': 'error'}), 503
     except Exception as e:
-        return jsonify({'error': str(e), 'status': 'error'}), 500
+        print(f"Upload proxy error: {str(e)}")
+        return jsonify({'error': f'Upload failed: {str(e)}', 'status': 'error'}), 500
 
 @app.route('/<username>/download/<path:file_path>')
 @require_atom_user
@@ -270,13 +292,19 @@ def user_files(username):
             </html>
         """)
         
-    path = request.args.get('path', '')
-    # Clean up the path to avoid any double slashes or trailing slashes
-    path = path.strip('/')
+    # Get and clean the path parameter
+    path = request.args.get('path', '').strip()
+    if path.startswith('/'):
+        path = path[1:]
+    if path.endswith('/') and path != '':
+        path = path[:-1]
     
     # Calculate parent path properly
-    path_parts = path.split('/') if path else []
-    parent_path = '/'.join(path_parts[:-1]) if len(path_parts) > 0 else ""
+    if path:
+        path_parts = path.split('/')
+        parent_path = '/'.join(path_parts[:-1]) if len(path_parts) > 1 else ''
+    else:
+        parent_path = None
     
     # Try to get real file data from local instance or cached data
     data, is_fresh = fetch_local_data(instance, 'files_data', {'path': path})
@@ -295,7 +323,7 @@ def user_files(username):
         file_data = instance.files_data.get('structure', {'folders': [], 'files': []})
     else:
         # Fall back to dummy data if nothing is available
-        file_data = get_dummy_files(path)
+        file_data = {'folders': [], 'files': []}
     
     # Add icons to file data
     for file in file_data.get('files', []):
@@ -310,7 +338,7 @@ def user_files(username):
         current_path=path,
         datetime=datetime,
         parent_path=parent_path,
-        repo_name=username  # Add repo_name for the download button
+        repo_name=username
     )
     
     return render_page(username, "Files", content, 
