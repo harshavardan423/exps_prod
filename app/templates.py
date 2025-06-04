@@ -101,24 +101,28 @@ FILE_EXPLORER_TEMPLATE = """
         </div>
 
         <!-- Path Navigation -->
-        <div class="flex items-center space-x-4 mt-4">
-            <div class="flex-grow">
-                <div class="bg-gray-50 rounded-md px-3 py-1 text-sm breadcrumbs">
-                    <a href="/{{ username }}/files" class="text-blue-500 hover:underline">root</a>
-                    {% if current_path %}
-                        {% set path_parts = current_path.split('/') %}
-                        {% set accumulated_path = '' %}
-                        {% for part in path_parts %}
-                            {% if part %}
-                                {% set accumulated_path = accumulated_path + '/' + part %}
-                                <span class="text-gray-500">/</span>
-                                <a href="/{{ username }}/files?path={{ accumulated_path[1:] | urlencode }}" class="text-blue-500 hover:underline">{{ part }}</a>
-                            {% endif %}
-                        {% endfor %}
+<div class="flex items-center space-x-4 mt-4">
+    <div class="flex-grow">
+        <div class="bg-gray-50 rounded-md px-3 py-1 text-sm breadcrumbs">
+            <a href="/{{ username }}/files" class="text-blue-500 hover:underline">root</a>
+            {% if current_path %}
+                {% set path_parts = current_path.split('/') %}
+                {% set accumulated_path = '' %}
+                {% for part in path_parts %}
+                    {% if part %}
+                        {% if accumulated_path %}
+                            {% set accumulated_path = accumulated_path + '/' + part %}
+                        {% else %}
+                            {% set accumulated_path = part %}
+                        {% endif %}
+                        <span class="text-gray-500">/</span>
+                        <a href="/{{ username }}/files?path={{ accumulated_path | urlencode }}" class="text-blue-500 hover:underline">{{ part }}</a>
                     {% endif %}
-                </div>
-            </div>
+                {% endfor %}
+            {% endif %}
         </div>
+    </div>
+</div>
     </div>
 
     <!-- File Explorer -->
