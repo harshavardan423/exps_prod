@@ -13,6 +13,7 @@ class ExposedInstance(db.Model):
     behaviors_data = db.Column(db.JSON, nullable=True)
     allowed_users = db.Column(db.JSON, nullable=True)  # Added field for allowed_users
     last_data_sync = db.Column(db.DateTime, nullable=True)
+    pending_uploads = db.Column(db.JSON, default=list)
     
     def to_dict(self):
         return {
