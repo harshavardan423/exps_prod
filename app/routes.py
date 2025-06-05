@@ -9,6 +9,7 @@ from app.use_atom_auth import require_atom_user
 import requests
 from datetime import datetime
 from io import BytesIO
+import base64
 
 # Routes
 @app.route('/')
