@@ -164,47 +164,75 @@ def proxy_upload(username):
     # Forward the upload request to the local instance
     try:
         upload_url = f"{instance.local_url}/api/upload"
+        print(f"Forwarding upload to: {upload_url}")
         
-        # Create files dict for forwarding
+        # Prepare files for forwarding - handle multiple files properly
         files_to_forward = {}
-        for key in request.files:
-            file_obj = request.files[key]
-            if file_obj:
-                # Reset file pointer to beginning
-                file_obj.seek(0)
-                files_to_forward[key] = (
-                    file_obj.filename, 
-                    file_obj.stream, 
-                    file_obj.content_type
-                )
+        if request.files:
+            for key in request.files:
+                files_list = request.files.getlist(key)
+                for i, file_obj in enumerate(files_list):
+                    if file_obj and file_obj.filename:
+                        # Read file content into memory
+                        file_obj.seek(0)
+                        file_content = file_obj.read()
+                        file_obj.seek(0)  # Reset for potential reuse
+                        
+                        # Use unique key for multiple files
+                        file_key = key if len(files_list) == 1 else f"{key}_{i}"
+                        files_to_forward[file_key] = (
+                            file_obj.filename,
+                            BytesIO(file_content),
+                            file_obj.content_type or 'application/octet-stream'
+                        )
         
-        # Forward the request with proper file handling
+        # Prepare form data
+        form_data = {}
+        if request.form:
+            form_data = request.form.to_dict()
+        
+        print(f"Form data: {form_data}")
+        print(f"Files to forward: {list(files_to_forward.keys())}")
+        
+        # Make the request with proper error handling
         response = requests.post(
             upload_url,
-            files=files_to_forward,
-            data=request.form.to_dict(),  # Forward form data including path
-            timeout=30  # Longer timeout for uploads
+            files=files_to_forward if files_to_forward else None,
+            data=form_data,
+            timeout=60,  # Longer timeout for uploads
+            verify=False  # In case of SSL issues with local instances
         )
+        
+        print(f"Local instance response status: {response.status_code}")
+        print(f"Local instance response: {response.text[:500]}")  # First 500 chars
         
         # Return the response from the local instance
         if response.status_code == 200:
             try:
-                return jsonify(response.json()), response.status_code
-            except:
+                return jsonify(response.json()), 200
+            except ValueError:
+                # If response is not JSON, assume success
                 return jsonify({'status': 'success', 'message': 'Upload completed'}), 200
         else:
             try:
                 error_data = response.json()
                 return jsonify(error_data), response.status_code
-            except:
-                return jsonify({'error': f'Upload failed with status {response.status_code}'}), response.status_code
+            except ValueError:
+                return jsonify({
+                    'error': f'Upload failed with status {response.status_code}',
+                    'details': response.text[:200]
+                }), response.status_code
         
     except requests.exceptions.Timeout:
+        print("Upload request timed out")
         return jsonify({'error': 'Upload timed out', 'status': 'error'}), 408
-    except requests.exceptions.ConnectionError:
+    except requests.exceptions.ConnectionError as e:
+        print(f"Connection error: {e}")
         return jsonify({'error': 'Could not connect to local instance', 'status': 'error'}), 503
     except Exception as e:
         print(f"Upload proxy error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': f'Upload failed: {str(e)}', 'status': 'error'}), 500
 
 @app.route('/<username>/download/<path:file_path>')
