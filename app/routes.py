@@ -516,10 +516,22 @@ def heartbeat(token):
             except Exception as e:
                 print(f"Error fetching allowed_users during heartbeat: {e}")
         
+        # Prepare response with pending uploads
+        response_data = {'status': 'ok'}
+        
+        # Check if there are pending uploads for this instance
+        if instance.pending_uploads and len(instance.pending_uploads) > 0:
+            print(f"Sending {len(instance.pending_uploads)} pending uploads to {instance.username}")
+            response_data['pending_uploads'] = instance.pending_uploads
+            # Clear pending uploads after sending them
+            instance.pending_uploads = []
+        
         db.session.commit()
-        return jsonify({'status': 'ok'}), 200
+        return jsonify(response_data), 200
+        
     except Exception as e:
         db.session.rollback()
+        print(f"Heartbeat error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/deregister/<token>', methods=['DELETE'])
