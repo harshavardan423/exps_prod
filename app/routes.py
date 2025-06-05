@@ -159,8 +159,9 @@ def proxy_upload(username):
     if not instance:
         return jsonify({'error': 'User not found'}), 404
     
-    if not check_access(instance, request):
-        return jsonify({'error': 'Access denied'}), 403
+    # REMOVED: Access check for upload
+    # if not check_access(instance, request):
+    #     return jsonify({'error': 'Access denied'}), 403
     
     # Forward the upload request to the local instance
     try:
