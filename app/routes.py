@@ -154,88 +154,66 @@ def user_home(username):
 
 @app.route('/<username>/api/upload', methods=['POST'])
 def proxy_upload(username):
-    # Find the user's instance
     instance = ExposedInstance.query.filter_by(username=username).first()
     if not instance:
         return jsonify({'error': 'User not found'}), 404
     
-    # REMOVED: Access check for upload
-    # if not check_access(instance, request):
-    #     return jsonify({'error': 'Access denied'}), 403
-    
-    # Forward the upload request to the local instance
     try:
-        upload_url = f"{instance.local_url}/api/upload"
-        print(f"Forwarding upload to: {upload_url}")
+        uploaded_files = []
+        target_path = request.form.get('path', '').strip()
         
-        # Prepare files for forwarding - handle multiple files properly
-        files_to_forward = {}
-        if request.files:
+        if 'folder' in request.form:
+            # Handle folder creation
+            folder_data = json.loads(request.form['folder'])
+            folder_name = folder_data.get('name', '')
+            
+            if not instance.pending_uploads:
+                instance.pending_uploads = []
+            
+            instance.pending_uploads.append({
+                'type': 'folder',
+                'name': folder_name,
+                'path': target_path,
+                'timestamp': datetime.utcnow().isoformat()
+            })
+            
+            uploaded_files.append(folder_name)
+        
+        else:
+            # Handle file uploads
+            if not instance.pending_uploads:
+                instance.pending_uploads = []
+            
             for key in request.files:
                 files_list = request.files.getlist(key)
-                for i, file_obj in enumerate(files_list):
+                for file_obj in files_list:
                     if file_obj and file_obj.filename:
-                        # Read file content into memory
+                        # Read file content and encode as base64
                         file_obj.seek(0)
                         file_content = file_obj.read()
-                        file_obj.seek(0)  # Reset for potential reuse
+                        file_base64 = base64.b64encode(file_content).decode('utf-8')
                         
-                        # Use unique key for multiple files
-                        file_key = key if len(files_list) == 1 else f"{key}_{i}"
-                        files_to_forward[file_key] = (
-                            file_obj.filename,
-                            BytesIO(file_content),
-                            file_obj.content_type or 'application/octet-stream'
-                        )
+                        instance.pending_uploads.append({
+                            'type': 'file',
+                            'filename': file_obj.filename,
+                            'content': file_base64,
+                            'content_type': file_obj.content_type,
+                            'path': target_path,
+                            'timestamp': datetime.utcnow().isoformat()
+                        })
+                        
+                        uploaded_files.append(file_obj.filename)
         
-        # Prepare form data
-        form_data = {}
-        if request.form:
-            form_data = request.form.to_dict()
+        db.session.commit()
         
-        print(f"Form data: {form_data}")
-        print(f"Files to forward: {list(files_to_forward.keys())}")
+        return jsonify({
+            'status': 'success',
+            'message': f'Successfully queued for upload: {", ".join(uploaded_files)}. Files will appear in your local instance within 60 seconds.'
+        })
         
-        # Make the request with proper error handling
-        response = requests.post(
-            upload_url,
-            files=files_to_forward if files_to_forward else None,
-            data=form_data,
-            timeout=60,  # Longer timeout for uploads
-            verify=False  # In case of SSL issues with local instances
-        )
-        
-        print(f"Local instance response status: {response.status_code}")
-        print(f"Local instance response: {response.text[:500]}")  # First 500 chars
-        
-        # Return the response from the local instance
-        if response.status_code == 200:
-            try:
-                return jsonify(response.json()), 200
-            except ValueError:
-                # If response is not JSON, assume success
-                return jsonify({'status': 'success', 'message': 'Upload completed'}), 200
-        else:
-            try:
-                error_data = response.json()
-                return jsonify(error_data), response.status_code
-            except ValueError:
-                return jsonify({
-                    'error': f'Upload failed with status {response.status_code}',
-                    'details': response.text[:200]
-                }), response.status_code
-        
-    except requests.exceptions.Timeout:
-        print("Upload request timed out")
-        return jsonify({'error': 'Upload timed out', 'status': 'error'}), 408
-    except requests.exceptions.ConnectionError as e:
-        print(f"Connection error: {e}")
-        return jsonify({'error': 'Could not connect to local instance', 'status': 'error'}), 503
     except Exception as e:
-        print(f"Upload proxy error: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': f'Upload failed: {str(e)}', 'status': 'error'}), 500
+        print(f"Upload storage error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/<username>/download/<path:file_path>')
 @require_atom_user
