@@ -436,8 +436,11 @@ function uploadFiles() {
         return;
     }
     
+    console.log(`Uploading ${files.length} files`);
+    
     const formData = new FormData();
     for (let i = 0; i < files.length; i++) {
+        console.log(`Adding file: ${files[i].name}`);
         formData.append('file', files[i]);
     }
     
@@ -452,17 +455,22 @@ function uploadFiles() {
         body: formData
     })
     .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
+        console.log(`Response status: ${response.status}`);
+        return response.text().then(text => {
+            try {
+                return JSON.parse(text);
+            } catch (e) {
+                console.error('Failed to parse JSON response:', text);
+                throw new Error(`Server returned non-JSON response: ${text.substring(0, 100)}`);
+            }
+        });
     })
     .then(data => {
+        console.log('Upload response:', data);
         if (data.status === 'success') {
             document.getElementById('uploadStatus').innerHTML = 
                 '<p class="text-green-500">Files uploaded successfully!</p>';
             
-            // Reload the page after a short delay
             setTimeout(() => {
                 window.location.reload();
             }, 1500);
@@ -474,7 +482,7 @@ function uploadFiles() {
     .catch(error => {
         console.error('Upload error:', error);
         document.getElementById('uploadStatus').innerHTML = 
-            '<p class="text-red-500">Upload failed. Please try again.</p>';
+            `<p class="text-red-500">Upload failed: ${error.message}</p>`;
     });
 }
 
