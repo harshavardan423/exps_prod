@@ -176,144 +176,250 @@ INDEX_TEMPLATE = """
 
 BEHAVIORS_TEMPLATE = """
 <div class="space-y-6">
+    <!-- Debug Info (remove this once working) -->
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+        <h4 class="font-medium text-yellow-800 mb-2">Debug Info:</h4>
+        <pre class="text-xs text-yellow-700 overflow-auto">{{ behaviors_data | tojson(indent=2) }}</pre>
+    </div>
+
     {% if behaviors_data %}
-        {% if behaviors_data.behaviors %}
-            <div class="mb-8">
-                <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                    <i class="fas fa-cogs text-blue-600 mr-2"></i>
-                    Behaviors
-                </h2>
-                <div class="grid gap-6">
-                    {% for behavior_name, behavior_steps in behaviors_data.behaviors.items() %}
-                        <div class="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
-                            <div class="bg-white px-4 py-3 border-b border-gray-200">
-                                <h3 class="text-lg font-medium text-gray-900 flex items-center">
-                                    <i class="fas fa-play-circle text-green-600 mr-2"></i>
-                                    {{ behavior_name }}
-                                </h3>
-                            </div>
-                            <div class="p-4">
-                                <div class="space-y-3">
-                                    {% for step in behavior_steps %}
-                                        <div class="bg-white rounded-md border border-gray-200 p-3">
-                                            <div class="flex items-start space-x-3">
-                                                <div class="flex-shrink-0">
-                                                    {% if step.type == 'triggers' %}
-                                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                            <i class="fas fa-bolt mr-1"></i>Trigger
-                                                        </span>
-                                                    {% else %}
-                                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                            <i class="fas fa-play mr-1"></i>Action
-                                                        </span>
-                                                    {% endif %}
-                                                </div>
-                                                <div class="flex-1 min-w-0">
-                                                    <p class="text-sm font-medium text-gray-900">{{ step.name }}</p>
-                                                    {% if step.params %}
-                                                        <div class="mt-2">
-                                                            <div class="bg-gray-50 rounded p-2">
-                                                                <h5 class="text-xs font-medium text-gray-700 mb-1">Parameters:</h5>
-                                                                <div class="space-y-1">
-                                                                    {% for param_key, param_value in step.params.items() %}
-                                                                        <div class="flex text-xs">
-                                                                            <span class="font-medium text-gray-600 w-20 flex-shrink-0">{{ param_key }}:</span>
-                                                                            <span class="text-gray-800 break-all">{{ param_value }}</span>
-                                                                        </div>
-                                                                    {% endfor %}
+        {% if behaviors_data is mapping %}
+            <!-- If behaviors_data is a dictionary -->
+            {% if behaviors_data.get('behaviors') %}
+                <div class="mb-8">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-cogs text-blue-600 mr-2"></i>
+                        Behaviors ({{ behaviors_data.behaviors | length }})
+                    </h2>
+                    <div class="grid gap-6">
+                        {% for behavior_name, behavior_steps in behaviors_data.behaviors.items() %}
+                            <div class="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                                <div class="bg-white px-4 py-3 border-b border-gray-200">
+                                    <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                                        <i class="fas fa-play-circle text-green-600 mr-2"></i>
+                                        {{ behavior_name }}
+                                        <span class="ml-2 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+                                            {{ behavior_steps | length }} steps
+                                        </span>
+                                    </h3>
+                                </div>
+                                <div class="p-4">
+                                    <div class="space-y-3">
+                                        {% for step in behavior_steps %}
+                                            <div class="bg-white rounded-md border border-gray-200 p-3">
+                                                <div class="flex items-start space-x-3">
+                                                    <div class="flex-shrink-0">
+                                                        {% if step.get('type') == 'triggers' %}
+                                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                                <i class="fas fa-bolt mr-1"></i>Trigger
+                                                            </span>
+                                                        {% else %}
+                                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                                <i class="fas fa-play mr-1"></i>Action
+                                                            </span>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="flex-1 min-w-0">
+                                                        <p class="text-sm font-medium text-gray-900">{{ step.get('name', 'Unknown') }}</p>
+                                                        
+                                                        {% if step.get('params') %}
+                                                            <div class="mt-2">
+                                                                <div class="bg-gray-50 rounded p-2">
+                                                                    <h5 class="text-xs font-medium text-gray-700 mb-1">Parameters:</h5>
+                                                                    <div class="space-y-1">
+                                                                        {% for param_key, param_value in step.params.items() %}
+                                                                            <div class="text-xs">
+                                                                                <span class="font-medium text-gray-600">{{ param_key }}:</span>
+                                                                                <span class="text-gray-800 ml-1">
+                                                                                    {% if param_value | length > 100 %}
+                                                                                        {{ param_value[:100] }}...
+                                                                                    {% else %}
+                                                                                        {{ param_value }}
+                                                                                    {% endif %}
+                                                                                </span>
+                                                                            </div>
+                                                                        {% endfor %}
+                                                                    </div>
                                                                 </div>
                                                             </div>
-                                                        </div>
-                                                    {% endif %}
-                                                    {% if step.output %}
-                                                        <div class="mt-2">
-                                                            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-yellow-100 text-yellow-800">
-                                                                Output: {{ step.output }}
-                                                            </span>
-                                                        </div>
-                                                    {% endif %}
+                                                        {% endif %}
+
+                                                        {% if step.get('details') %}
+                                                            <div class="mt-2">
+                                                                <div class="bg-gray-50 rounded p-2">
+                                                                    <h5 class="text-xs font-medium text-gray-700 mb-1">Details:</h5>
+                                                                    <div class="space-y-1">
+                                                                        {% for detail_key, detail_value in step.details.items() %}
+                                                                            <div class="text-xs">
+                                                                                <span class="font-medium text-gray-600">{{ detail_key }}:</span>
+                                                                                <span class="text-gray-800 ml-1">{{ detail_value }}</span>
+                                                                            </div>
+                                                                        {% endfor %}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        {% endif %}
+                                                        
+                                                        {% if step.get('output') %}
+                                                            <div class="mt-2">
+                                                                <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                                    Output: {{ step.output }}
+                                                                </span>
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    {% endfor %}
+                                        {% endfor %}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    {% endfor %}
+                        {% endfor %}
+                    </div>
                 </div>
+            {% endif %}
+
+            {% if behaviors_data.get('sequences') %}
+                <div class="mb-8">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-list-ol text-purple-600 mr-2"></i>
+                        Sequences ({{ behaviors_data.sequences | length }})
+                    </h2>
+                    <div class="grid gap-6">
+                        {% for sequence_name, sequence_steps in behaviors_data.sequences.items() %}
+                            <div class="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
+                                <div class="bg-white px-4 py-3 border-b border-gray-200">
+                                    <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                                        <i class="fas fa-tasks text-purple-600 mr-2"></i>
+                                        {{ sequence_name }}
+                                        <span class="ml-2 px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-full">
+                                            {{ sequence_steps | length }} steps
+                                        </span>
+                                    </h3>
+                                </div>
+                                <div class="p-4">
+                                    <div class="space-y-3">
+                                        {% for step in sequence_steps %}
+                                            <div class="bg-white rounded-md border border-gray-200 p-3">
+                                                <div class="flex items-start space-x-3">
+                                                    <div class="flex-shrink-0">
+                                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                                            <i class="fas fa-play mr-1"></i>Action
+                                                        </span>
+                                                    </div>
+                                                    <div class="flex-1 min-w-0">
+                                                        <p class="text-sm font-medium text-gray-900">{{ step.get('name', 'Unknown') }}</p>
+                                                        
+                                                        {% if step.get('details') %}
+                                                            <div class="mt-2">
+                                                                <div class="bg-gray-50 rounded p-2">
+                                                                    <h5 class="text-xs font-medium text-gray-700 mb-1">Details:</h5>
+                                                                    <div class="space-y-1">
+                                                                        {% for detail_key, detail_value in step.details.items() %}
+                                                                            <div class="text-xs">
+                                                                                <span class="font-medium text-gray-600">{{ detail_key }}:</span>
+                                                                                <span class="text-gray-800 ml-1">{{ detail_value }}</span>
+                                                                            </div>
+                                                                        {% endfor %}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        {% endif %}
+
+                                                        {% if step.get('params') %}
+                                                            <div class="mt-2">
+                                                                <div class="bg-gray-50 rounded p-2">
+                                                                    <h5 class="text-xs font-medium text-gray-700 mb-1">Parameters:</h5>
+                                                                    <div class="space-y-1">
+                                                                        {% for param_key, param_value in step.params.items() %}
+                                                                            <div class="text-xs">
+                                                                                <span class="font-medium text-gray-600">{{ param_key }}:</span>
+                                                                                <span class="text-gray-800 ml-1">
+                                                                                    {% if param_value | string | length > 100 %}
+                                                                                        {{ param_value | string | truncate(100) }}
+                                                                                    {% else %}
+                                                                                        {{ param_value }}
+                                                                                    {% endif %}
+                                                                                </span>
+                                                                            </div>
+                                                                        {% endfor %}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        {% endif %}
+                                                        
+                                                        {% if step.get('output') %}
+                                                            <div class="mt-2">
+                                                                <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                                    Output: {{ step.output }}
+                                                                </span>
+                                                            </div>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+        {% else %}
+            <!-- If behaviors_data is not a dictionary, show it as JSON -->
+            <div class="bg-white rounded-lg border border-gray-200 p-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Raw Behaviors Data</h3>
+                <pre class="bg-gray-50 rounded p-4 text-sm overflow-auto">{{ behaviors_data | tojson(indent=2) }}</pre>
             </div>
         {% endif %}
 
-        {% if behaviors_data.sequences %}
-            <div class="mb-8">
-                <h2 class="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-                    <i class="fas fa-list-ol text-purple-600 mr-2"></i>
-                    Sequences
-                </h2>
-                <div class="grid gap-6">
-                    {% for sequence_name, sequence_steps in behaviors_data.sequences.items() %}
-                        <div class="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
-                            <div class="bg-white px-4 py-3 border-b border-gray-200">
-                                <h3 class="text-lg font-medium text-gray-900 flex items-center">
-                                    <i class="fas fa-tasks text-purple-600 mr-2"></i>
-                                    {{ sequence_name }}
-                                </h3>
-                            </div>
-                            <div class="p-4">
-                                <div class="space-y-3">
-                                    {% for step in sequence_steps %}
-                                        <div class="bg-white rounded-md border border-gray-200 p-3">
-                                            <div class="flex items-start space-x-3">
-                                                <div class="flex-shrink-0">
-                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                                                        <i class="fas fa-play mr-1"></i>Action
-                                                    </span>
-                                                </div>
-                                                <div class="flex-1 min-w-0">
-                                                    <p class="text-sm font-medium text-gray-900">{{ step.name }}</p>
-                                                    {% if step.details %}
-                                                        <div class="mt-2">
-                                                            <div class="bg-gray-50 rounded p-2">
-                                                                <h5 class="text-xs font-medium text-gray-700 mb-1">Details:</h5>
-                                                                <div class="space-y-1">
-                                                                    {% for detail_key, detail_value in step.details.items() %}
-                                                                        <div class="flex text-xs">
-                                                                            <span class="font-medium text-gray-600 w-20 flex-shrink-0">{{ detail_key }}:</span>
-                                                                            <span class="text-gray-800 break-all">{{ detail_value }}</span>
-                                                                        </div>
-                                                                    {% endfor %}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    {% endif %}
-                                                    {% if step.output %}
-                                                        <div class="mt-2">
-                                                            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-yellow-100 text-yellow-800">
-                                                                Output: {{ step.output }}
-                                                            </span>
-                                                        </div>
-                                                    {% endif %}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
-            </div>
-        {% endif %}
     {% else %}
         <div class="text-center py-12">
             <div class="bg-gray-50 rounded-lg p-8">
                 <i class="fas fa-cogs text-gray-400 text-6xl mb-4"></i>
                 <h3 class="text-xl font-semibold text-gray-900 mb-2">No Behaviors Found</h3>
                 <p class="text-gray-600">No behaviors or sequences are currently configured for this instance.</p>
+                <p class="text-sm text-gray-500 mt-2">Data received: {{ behaviors_data | string }}</p>
             </div>
         </div>
     {% endif %}
 </div>
+
+<style>
+/* Custom styles for long content */
+.truncate-text {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.expandable {
+    cursor: pointer;
+}
+
+.expandable:hover {
+    background-color: #f9fafb;
+}
+</style>
+
+<script>
+// Add click handlers to expand/collapse long content
+document.addEventListener('DOMContentLoaded', function() {
+    // Add expand/collapse functionality for long parameter values
+    const paramValues = document.querySelectorAll('.param-value');
+    paramValues.forEach(function(element) {
+        if (element.textContent.length > 100) {
+            element.classList.add('expandable');
+            element.addEventListener('click', function() {
+                this.classList.toggle('truncate-text');
+            });
+        }
+    });
+});
+</script>
 """
 
 FILE_EXPLORER_TEMPLATE = """
