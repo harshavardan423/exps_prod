@@ -64,6 +64,14 @@ BASE_TEMPLATE = """
                     <i class="fas fa-user-circle mr-1"></i>
                     {{ current_user_email }}
                 </div>
+                <a href="/{{ username }}/logout" 
+                   class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
+                    <i class="fas fa-sign-out-alt mr-1"></i>
+                    <span class="hidden sm:inline">Logout</span>
+                    <span class="sm:hidden">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </span>
+                </a>
                 {% endif %}
             </div>
         </div>
