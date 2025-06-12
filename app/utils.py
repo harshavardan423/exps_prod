@@ -2,13 +2,14 @@ import requests
 from flask import render_template_string, session
 from app.templates import BASE_TEMPLATE
 
-def render_page(username, title, content, instance_status=None):
+def render_page(username, title, content, instance_status=None, current_user_email=None):
     return render_template_string(
         BASE_TEMPLATE, 
         username=username,
         title=title,
         content=content,
-        instance_status=instance_status
+        instance_status=instance_status,
+        current_user_email=current_user_email or get_current_user_email()
     )
 
 def fetch_local_data(instance, endpoint, params=None):
