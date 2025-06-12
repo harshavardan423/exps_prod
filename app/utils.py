@@ -15,13 +15,18 @@ def render_page(username, title, content, instance_status=None, current_user_ema
 def fetch_local_data(instance, endpoint, params=None):
     try:
         url = f"{instance.local_url}/api/{endpoint}"
+        print(f"Fetching data from: {url} with params: {params}")  # Debug logging
         response = requests.get(
             url,
             params=params,
-            timeout=5
+            timeout=8  # Increased timeout
         )
         if response.ok:
-            return response.json(), True
+            data = response.json()
+            print(f"Successfully fetched data: {len(str(data))} chars")  # Debug logging
+            return data, True
+        else:
+            print(f"Failed to fetch data: {response.status_code}")  # Debug logging
     except Exception as e:
         print(f"Error fetching data from {endpoint}: {e}")
     return None, False
