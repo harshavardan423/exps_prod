@@ -4,7 +4,7 @@ from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 app.wsgi_app = ProxyFix(app.wsgi_app)
 app.secret_key = 'your-secret-key-here'  # Change this to a secure value
 CORS(app)
