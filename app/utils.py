@@ -1,5 +1,5 @@
 import requests
-from flask import render_template_string
+from flask import render_template_string, session
 from app.templates import BASE_TEMPLATE
 
 def render_page(username, title, content, instance_status=None):
@@ -10,7 +10,6 @@ def render_page(username, title, content, instance_status=None):
         content=content,
         instance_status=instance_status
     )
-
 
 def fetch_local_data(instance, endpoint, params=None):
     try:
@@ -26,17 +25,45 @@ def fetch_local_data(instance, endpoint, params=None):
         print(f"Error fetching data from {endpoint}: {e}")
     return None, False
 
-
-
 def check_access(instance, request):
     """Check if current user has access to the instance"""
-    # Get email from query params
-    user_email = request.args.get('email')
     
-    # If no email provided, deny access
+    # First check if email is already in session
+    user_email = session.get('verified_email')
+    
+    # If not in session, check query params
     if not user_email:
+        user_email = request.args.get('email')
+        
+        # If email provided in query, store it in session for future requests
+        if user_email:
+            session['verified_email'] = user_email
+    
+    # If still no email, check if access control is even enabled
+    if not user_email:
+        # Try to fetch allowed_users to see if access control is enabled
+        try:
+            response = requests.get(f"{instance.local_url}/api/allowed_users", timeout=3)
+            if response.ok:
+                allowed_users = response.json().get('allowed_users', [])
+                # If no allowed users set, allow access without email
+                if not allowed_users:
+                    return True
+        except Exception as e:
+            print(f"Error checking access from local instance: {e}")
+        
+        # Check stored allowed_users as fallback
+        if hasattr(instance, 'allowed_users') and instance.allowed_users:
+            if not instance.allowed_users:  # Empty list
+                return True
+        else:
+            # No allowed_users data available, allow access
+            return True
+        
+        # Access control is enabled but no email provided
         return False
     
+    # We have an email, now check if it's allowed
     # First, try to fetch allowed_users from local instance (for most up-to-date data)
     try:
         response = requests.get(f"{instance.local_url}/api/allowed_users", timeout=3)
@@ -51,7 +78,7 @@ def check_access(instance, request):
         print(f"Error checking access from local instance: {e}")
     
     # If we couldn't fetch from local instance, use stored allowed_users
-    if instance.allowed_users:
+    if hasattr(instance, 'allowed_users') and instance.allowed_users:
         # If no allowed users set, allow all access
         if not instance.allowed_users:
             return True
@@ -59,8 +86,11 @@ def check_access(instance, request):
         return user_email in instance.allowed_users
     
     # If we have no allowed users data, default to allowing access
-    # You might want to change this based on your security requirements
     return True
+
+def get_current_user_email():
+    """Get the currently verified email from session"""
+    return session.get('verified_email')
 
 def get_file_icon(filename):
     """Get appropriate Font Awesome icon for file type"""
