@@ -311,6 +311,8 @@ def user_files(username):
         
     # Get and clean the path parameter
     path = request.args.get('path', '').strip()
+    
+    # Clean up the path
     if path.startswith('/'):
         path = path[1:]
     if path.endswith('/') and path != '':
@@ -318,7 +320,7 @@ def user_files(username):
     
     # Calculate parent path properly
     if path:
-        path_parts = path.split('/')
+        path_parts = [p for p in path.split('/') if p]  # Remove empty parts
         parent_path = '/'.join(path_parts[:-1]) if len(path_parts) > 1 else ''
     else:
         parent_path = None
@@ -359,7 +361,8 @@ def user_files(username):
     )
     
     return render_page(username, "Files", content, 
-                      instance_status='online' if is_fresh else 'offline')
+                      instance_status='online' if is_fresh else 'offline',
+                      current_user_email=get_current_user_email())
 
 @app.route('/<username>/file-content/<path:file_path>')
 @require_atom_user
