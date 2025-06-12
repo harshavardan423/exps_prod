@@ -1,6 +1,5 @@
 # Contains all your HTML templates (BASE_TEMPLATE, INDEX_TEMPLATE, FILE_EXPLORER_TEMPLATE, BEHAVIORS_TEMPLATE)
 # HTML Templates
-
 BASE_TEMPLATE = """
 <!DOCTYPE html>
 <html>
@@ -23,7 +22,7 @@ BASE_TEMPLATE = """
     </style>
 </head>
 <body class="bg-gray-50">
-    <nav class="bg-white shadow-lg border-b border-gray-200">
+    <nav class="bg-black shadow-lg border-b border-gray-800">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center space-x-8">
@@ -32,27 +31,27 @@ BASE_TEMPLATE = """
                             <img src="{{ url_for('static', filename='images/atom2.gif') }}" 
                                  alt="Atom Logo" 
                                  class="h-10 w-10">
-                            <span class="font-bold text-gray-800 text-xl">{{ username }}'s Atom</span>
+                            <span class="font-bold text-white text-xl">{{ username }}'s Atom</span>
                         </a>
                     </div>
                     <div class="hidden md:flex items-center space-x-6">
                         <a href="/{{ username }}/home" 
-                           class="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors">
+                           class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition-colors">
                             <i class="fas fa-home mr-2"></i>Home
                         </a>
                         <a href="/{{ username }}/files" 
-                           class="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors">
+                           class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition-colors">
                             <i class="fas fa-folder mr-2"></i>Files
                         </a>
                         <a href="/{{ username }}/behaviors" 
-                           class="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors">
+                           class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition-colors">
                             <i class="fas fa-cogs mr-2"></i>Behaviors
                         </a>
                     </div>
                 </div>
                 {% if current_user_email %}
                 <div class="flex items-center space-x-4">
-                    <div class="hidden sm:block text-sm text-gray-600">
+                    <div class="hidden sm:block text-sm text-gray-300">
                         <i class="fas fa-user-circle mr-1"></i>
                         {{ current_user_email }}
                     </div>
@@ -131,6 +130,30 @@ INDEX_TEMPLATE = """
     </style>
 </head>
 <body class="bg-gray-50">
+    <!-- Add the navbar here -->
+    <nav class="bg-black shadow-lg border-b border-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center space-x-8">
+                    <div class="flex items-center">
+                        <a href="/" class="flex items-center space-x-3">
+                            <img src="{{ url_for('static', filename='images/atom2.gif') }}" 
+                                 alt="Atom Logo" 
+                                 class="h-10 w-10">
+                            <span class="font-bold text-white text-xl">Atom Server</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-sm text-gray-300">
+                        <i class="fas fa-server mr-1"></i>
+                        Exposure Server
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
     <div class="gradient-bg py-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center">
