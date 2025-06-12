@@ -549,9 +549,6 @@ FILE_EXPLORER_TEMPLATE = """
         <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
             <div class="flex items-center justify-between px-6 py-3 bg-gray-50 border-b border-gray-200">
                 <div class="flex items-center space-x-4">
-                    <button id="downloadBtn" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
-                        <i class="fas fa-download mr-2"></i>Clone in Atom
-                    </button>
                     <button id="uploadBtn" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
                         <i class="fas fa-upload mr-2"></i>Upload
                     </button>
