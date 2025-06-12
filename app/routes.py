@@ -10,6 +10,7 @@ import requests
 from datetime import datetime
 from io import BytesIO
 import base64
+from app.utils import render_page, fetch_local_data, check_access, get_file_icon, get_current_user_email
 
 # Routes
 @app.route('/')
@@ -149,7 +150,14 @@ def user_home(username):
     '''
     
     return render_page(username, "Home", content, 
-                      instance_status='online' if is_fresh else 'offline')
+                      instance_status='online' if is_fresh else 'offline',
+                      current_user_email=get_current_user_email())
+
+
+@app.route('/<username>/logout')
+def logout(username):
+    session.pop('verified_email', None)
+    return redirect(f'/{username}/home')
 
 
 
