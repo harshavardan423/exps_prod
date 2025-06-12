@@ -325,51 +325,48 @@ def user_files(username):
     else:
         parent_path = None
     
-    # Try to get real file data from local instance
+    # Always try to get fresh data from local instance first
     data, is_fresh = fetch_local_data(instance, 'files_data', {'path': path})
     
     if data and is_fresh:
-        # Update cached data for this specific path
+        # Store fresh data in cache with path-specific key
         if not instance.files_data:
-            instance.files_data = {}
-        
-        # Store data with path as key to maintain cache for different paths
-        cache_key = path if path else 'root'
-        if 'cached_paths' not in instance.files_data:
+            instance.files_data = {'cached_paths': {}}
+        elif 'cached_paths' not in instance.files_data:
             instance.files_data['cached_paths'] = {}
         
+        cache_key = path if path else 'root'
         instance.files_data['cached_paths'][cache_key] = {
             'structure': data.get('structure', {'folders': [], 'files': []}),
             'timestamp': datetime.utcnow().isoformat()
         }
         
-        # Also update the main structure for backwards compatibility
-        instance.files_data['structure'] = data.get('structure', {'folders': [], 'files': []})
+        # Also update the main structure if this is the root
+        if not path:
+            instance.files_data['structure'] = data.get('structure', {'folders': [], 'files': []})
+        
         instance.last_data_sync = datetime.utcnow()
         db.session.commit()
         
         file_data = data.get('structure', {'folders': [], 'files': []})
         
-    elif instance.files_data:
-        # Try to get cached data for this specific path
-        cache_key = path if path else 'root'
-        cached_paths = instance.files_data.get('cached_paths', {})
-        
-        if cache_key in cached_paths:
-            # Use cached data for this specific path
-            file_data = cached_paths[cache_key].get('structure', {'folders': [], 'files': []})
-            is_fresh = False
-        else:
-            # No cached data for this path, show empty or try root
-            if path:  # If requesting a subpath but no cache, show empty
-                file_data = {'folders': [], 'files': []}
-            else:  # If requesting root, use main structure
-                file_data = instance.files_data.get('structure', {'folders': [], 'files': []})
-            is_fresh = False
     else:
-        # No data available at all
-        file_data = {'folders': [], 'files': []}
+        # Local instance is offline, check cache
         is_fresh = False
+        file_data = {'folders': [], 'files': []}
+        
+        if instance.files_data and 'cached_paths' in instance.files_data:
+            cache_key = path if path else 'root'
+            cached_paths = instance.files_data['cached_paths']
+            
+            if cache_key in cached_paths:
+                file_data = cached_paths[cache_key].get('structure', {'folders': [], 'files': []})
+            elif not path and 'structure' in instance.files_data:
+                # Fallback to main structure for root
+                file_data = instance.files_data.get('structure', {'folders': [], 'files': []})
+        elif instance.files_data and not path:
+            # Very old cache format, only for root
+            file_data = instance.files_data.get('structure', {'folders': [], 'files': []})
     
     # Add icons to file data
     for file in file_data.get('files', []):
