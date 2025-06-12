@@ -1,5 +1,7 @@
 # Contains all your HTML templates (BASE_TEMPLATE, INDEX_TEMPLATE, FILE_EXPLORER_TEMPLATE)
 # HTML Templates
+# Add this to the BASE_TEMPLATE after the navigation div, before the container:
+
 BASE_TEMPLATE = """
 <!DOCTYPE html>
 <html>
@@ -23,6 +25,12 @@ BASE_TEMPLATE = """
                         <a href="/{{ username }}/behaviors" class="py-4 px-2 text-gray-500 hover:text-gray-900">Behaviors</a>
                     </div>
                 </div>
+                {% if current_user_email %}
+                <div class="flex items-center py-4">
+                    <span class="text-sm text-gray-600">Viewing as: {{ current_user_email }}</span>
+                    <a href="/{{ username }}/logout" class="ml-4 text-sm text-red-600 hover:text-red-800">Logout</a>
+                </div>
+                {% endif %}
             </div>
         </div>
     </nav>
