@@ -23,48 +23,84 @@ BASE_TEMPLATE = """
 </head>
 <body class="bg-gray-50">
     <nav class="bg-black shadow-lg border-b border-gray-800">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center space-x-8">
-                    <div class="flex items-center">
-                        <a href="/{{ username }}/home" class="flex items-center space-x-3">
-                            <img src="{{ url_for('static', filename='images/atom2.gif') }}" 
-                                 alt="Atom Logo" 
-                                 class="h-10 w-10">
-                            <span class="text-white text-xl">{{ username }}'s Atom</span>
-                        </a>
-                    </div>
-                    <div class="hidden md:flex items-center space-x-6">
-                        <a href="/{{ username }}/home" 
-                           class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition-colors">
-                            <i class="fas fa-home mr-2"></i>Home
-                        </a>
-                        <a href="/{{ username }}/files" 
-                           class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition-colors">
-                            <i class="fas fa-folder mr-2"></i>Files
-                        </a>
-                        <a href="/{{ username }}/behaviors" 
-                           class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition-colors">
-                            <i class="fas fa-cogs mr-2"></i>Behaviors
-                        </a>
-                    </div>
-                </div>
-                {% if current_user_email %}
-                <div class="flex items-center space-x-4">
-                    <div class="hidden sm:block text-sm text-gray-300">
-                        <i class="fas fa-user-circle mr-1"></i>
-                        {{ current_user_email }}
-                    </div>
-                    <a href="/{{ username }}/logout" 
-                       class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
-                        <i class="fas fa-sign-out-alt mr-1"></i>
-                        Logout
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+            <div class="flex items-center space-x-8">
+                <div class="flex items-center">
+                    <a href="/{{ username }}/home" class="flex items-center space-x-3">
+                        <img src="{{ url_for('static', filename='images/atom2.gif') }}" 
+                             alt="Atom Logo" 
+                             class="h-10 w-10">
+                        <span class="text-white text-xl">{{ username }}'s Atom</span>
                     </a>
+                </div>
+                <!-- Desktop Navigation -->
+                <div class="hidden md:flex items-center space-x-6">
+                    <a href="/{{ username }}/home" 
+                       class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition-colors">
+                        <i class="fas fa-home mr-2"></i>Home
+                    </a>
+                    <a href="/{{ username }}/files" 
+                       class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition-colors">
+                        <i class="fas fa-folder mr-2"></i>Files
+                    </a>
+                    <a href="/{{ username }}/behaviors" 
+                       class="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition-colors">
+                        <i class="fas fa-cogs mr-2"></i>Behaviors
+                    </a>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <!-- Mobile menu button -->
+                <div class="md:hidden">
+                    <button id="mobile-menu-button" class="text-gray-300 hover:text-white focus:outline-none focus:text-white">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+                
+                {% if current_user_email %}
+                <div class="hidden sm:block text-sm text-gray-300">
+                    <i class="fas fa-user-circle mr-1"></i>
+                    {{ current_user_email }}
+                </div>
+                <a href="/{{ username }}/logout" 
+                   class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
+                    <i class="fas fa-sign-out-alt mr-1"></i>
+                    <span class="hidden sm:inline">Logout</span>
+                    <span class="sm:hidden">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </span>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Mobile Navigation Menu -->
+        <div id="mobile-menu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 border-t border-gray-800">
+                <a href="/{{ username }}/home" 
+                   class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition-colors">
+                    <i class="fas fa-home mr-2"></i>Home
+                </a>
+                <a href="/{{ username }}/files" 
+                   class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition-colors">
+                    <i class="fas fa-folder mr-2"></i>Files
+                </a>
+                <a href="/{{ username }}/behaviors" 
+                   class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition-colors">
+                    <i class="fas fa-cogs mr-2"></i>Behaviors
+                </a>
+                {% if current_user_email %}
+                <div class="px-3 py-2 text-sm text-gray-300 border-t border-gray-800 mt-2 pt-2">
+                    <i class="fas fa-user-circle mr-1"></i>
+                    {{ current_user_email }}
                 </div>
                 {% endif %}
             </div>
         </div>
-    </nav>
+    </div>
+</nav>
     
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div class="mb-8">
@@ -104,6 +140,28 @@ BASE_TEMPLATE = """
         </div>
         {% endif %}
     </div>
+
+    <script>
+// Mobile menu toggle
+document.addEventListener('DOMContentLoaded', function() {
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    
+    if (mobileMenuButton && mobileMenu) {
+        mobileMenuButton.addEventListener('click', function() {
+            mobileMenu.classList.toggle('hidden');
+            
+            // Toggle icon between hamburger and X
+            const icon = mobileMenuButton.querySelector('i');
+            if (mobileMenu.classList.contains('hidden')) {
+                icon.className = 'fas fa-bars text-xl';
+            } else {
+                icon.className = 'fas fa-times text-xl';
+            }
+        });
+    }
+});
+</script>
 </body>
 </html>
 """
