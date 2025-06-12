@@ -31,7 +31,7 @@ BASE_TEMPLATE = """
                             <img src="{{ url_for('static', filename='images/atom2.gif') }}" 
                                  alt="Atom Logo" 
                                  class="h-10 w-10">
-                            <span class="font-bold text-white text-xl">{{ username }}'s Atom</span>
+                            <span class="text-white text-xl">{{ username }}'s Atom</span>
                         </a>
                     </div>
                     <div class="hidden md:flex items-center space-x-6">
