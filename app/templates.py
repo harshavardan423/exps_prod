@@ -124,7 +124,7 @@ FILE_EXPLORER_TEMPLATE = """
                                     {% set accumulated_path = part %}
                                 {% endif %}
                                 <span class="text-gray-500">/</span>
-                                <a href="/{{ username }}/files?path={{ accumulated_path }}" class="text-blue-500 hover:underline">{{ part }}</a>
+                                <a href="/{{ username }}/files?path={{ accumulated_path|urlencode }}" class="text-blue-500 hover:underline">{{ part }}</a>
                             {% endif %}
                         {% endfor %}
                     {% endif %}
@@ -156,7 +156,7 @@ FILE_EXPLORER_TEMPLATE = """
                 <div class="flex items-center px-4 py-2 hover:bg-gray-50">
                     <div class="w-1/2 flex items-center">
                         <i class="fas fa-arrow-up text-gray-500 mr-2"></i>
-                        <a href="/{{ username }}/files{% if parent_path %}?path={{ parent_path }}{% endif %}" class="text-blue-500 hover:underline">Parent Directory</a>
+                        <a href="/{{ username }}/files{% if parent_path %}?path={{ parent_path|urlencode }}{% endif %}" class="text-blue-500 hover:underline">Parent Directory</a>
                     </div>
                     <div class="w-1/4 text-center text-gray-500">-</div>
                     <div class="w-1/4 text-center text-gray-500">-</div>
@@ -172,7 +172,7 @@ FILE_EXPLORER_TEMPLATE = """
                         {% else %}
                             {% set folder_path = item.name %}
                         {% endif %}
-                        <a href="/{{ username }}/files?path={{ folder_path }}" class="hover:underline">
+                        <a href="/{{ username }}/files?path={{ folder_path|urlencode }}" class="hover:underline">
                             {{ item.name }}
                         </a>
                     </div>
@@ -192,7 +192,7 @@ FILE_EXPLORER_TEMPLATE = """
                         {% else %}
                             {% set file_path = item.name %}
                         {% endif %}
-                        <a href="#" onclick="viewFile('{{ file_path }}')" class="hover:underline">
+                        <a href="#" onclick="viewFile('{{ file_path|e }}')" class="hover:underline">
                             {{ item.name }}
                         </a>
                     </div>
@@ -202,6 +202,15 @@ FILE_EXPLORER_TEMPLATE = """
                     </div>
                 </div>
                 {% endfor %}
+
+                {% if not file_data.folders and not file_data.files %}
+                <div class="flex items-center justify-center px-4 py-8">
+                    <div class="text-gray-500 text-center">
+                        <i class="fas fa-folder-open text-4xl mb-2"></i>
+                        <p>This directory is empty</p>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -248,6 +257,12 @@ FILE_EXPLORER_TEMPLATE = """
                     <input type="file" id="fileInput" multiple 
                            class="w-full px-3 py-2 border rounded text-sm">
                 </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Current Directory</label>
+                    <div class="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded">
+                        /{{ current_path if current_path else 'root' }}
+                    </div>
+                </div>
                 <div id="uploadStatus" class="text-sm"></div>
                 <div class="flex justify-end space-x-2">
                     <button type="button" onclick="closeUploadModal()" 
@@ -280,6 +295,12 @@ FILE_EXPLORER_TEMPLATE = """
                     <input type="text" id="folderNameInput" 
                            class="w-full px-3 py-2 border rounded" required>
                 </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Current Directory</label>
+                    <div class="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded">
+                        /{{ current_path if current_path else 'root' }}
+                    </div>
+                </div>
                 <div class="flex justify-end space-x-2">
                     <button type="button" onclick="closeNewFolderModal()" 
                             class="px-4 py-2 border rounded hover:bg-gray-50">
@@ -297,11 +318,14 @@ FILE_EXPLORER_TEMPLATE = """
 
 <script>
 // Global variable to store current path for use in JavaScript functions
-const currentPath = '{{ current_path }}';
+const currentPath = '{{ current_path|e }}';
+const username = '{{ username|e }}';
 
 function viewFile(filePath) {
+    console.log('Viewing file:', filePath);
+    
     // Try to fetch from our server-side cache first
-    fetch(`/{{ username }}/file-content/${filePath}`)
+    fetch(`/${username}/file-content/${encodeURIComponent(filePath)}`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('File content not available');
@@ -313,7 +337,16 @@ function viewFile(filePath) {
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Failed to load file content');
+            // Show a user-friendly error message
+            document.getElementById('fileContent').innerHTML = `
+                <div class="text-center text-red-500">
+                    <i class="fas fa-exclamation-triangle text-4xl mb-2"></i>
+                    <p>Failed to load file content</p>
+                    <p class="text-sm">${error.message}</p>
+                </div>
+            `;
+            document.getElementById('viewerFileName').textContent = filePath.split('/').pop();
+            document.getElementById('fileViewerModal').classList.remove('hidden');
         });
 }
 
@@ -390,7 +423,7 @@ function displayFileContent(data, filePath) {
                 <button id="viewRenderedBtn" class="px-3 py-1 border rounded hover:bg-gray-100">View Rendered</button>
             </div>
             <div id="rawContentView" class="block">
-                <pre class="whitespace-pre-wrap p-4 bg-gray-50 rounded border">${escapeHtml(data.content)}</pre>
+                <pre class="whitespace-pre-wrap p-4 bg-gray-50 rounded border overflow-auto">${escapeHtml(data.content)}</pre>
             </div>
         `;
         
@@ -412,14 +445,15 @@ function displayFileContent(data, filePath) {
             });
         }, 0);
     } else if (data.mime_type.startsWith('image/')) {
-        contentDiv.innerHTML = `<img src="data:${data.mime_type};base64,${data.content}" class="max-w-full">`;
+        contentDiv.innerHTML = `<div class="text-center"><img src="data:${data.mime_type};base64,${data.content}" class="max-w-full max-h-96 mx-auto"></div>`;
     } else if (data.mime_type.startsWith('text/') || data.mime_type === 'application/json' || 
                data.mime_type === 'application/javascript') {
-        contentDiv.innerHTML = `<pre class="whitespace-pre-wrap p-4 bg-gray-50 rounded border">${escapeHtml(data.content)}</pre>`;
+        contentDiv.innerHTML = `<pre class="whitespace-pre-wrap p-4 bg-gray-50 rounded border overflow-auto" style="max-height: 500px;">${escapeHtml(data.content)}</pre>`;
     } else {
         contentDiv.innerHTML = `<div class="text-center">
-            <p>File type: ${data.mime_type}</p>
-            <p class="mt-2">Click the download button above to download this file.</p>
+            <i class="fas fa-file text-6xl text-gray-400 mb-4"></i>
+            <p class="text-lg">File type: ${data.mime_type}</p>
+            <p class="mt-2 text-gray-600">Click the download button above to download this file.</p>
         </div>`;
     }
     
@@ -462,7 +496,7 @@ function uploadFiles() {
         return;
     }
     
-    console.log(`Uploading ${files.length} files`);
+    console.log(`Uploading ${files.length} files to path: ${currentPath}`);
     
     const formData = new FormData();
     for (let i = 0; i < files.length; i++) {
@@ -476,7 +510,7 @@ function uploadFiles() {
     document.getElementById('uploadStatus').innerHTML = 
         '<p class="text-blue-500">Uploading files...</p>';
     
-    fetch(`/{{ username }}/api/upload`, {
+    fetch(`/${username}/api/upload`, {
         method: 'POST',
         body: formData
     })
@@ -530,11 +564,13 @@ function createFolder() {
         return;
     }
     
+    console.log(`Creating folder: ${folderName} in path: ${currentPath}`);
+    
     const formData = new FormData();
     formData.append('path', currentPath);
     formData.append('folder', JSON.stringify({ name: folderName }));
     
-    fetch(`/{{ username }}/api/upload`, {
+    fetch(`/${username}/api/upload`, {
         method: 'POST',
         body: formData
     })
