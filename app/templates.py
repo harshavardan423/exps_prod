@@ -109,28 +109,28 @@ FILE_EXPLORER_TEMPLATE = """
         </div>
 
         <!-- Path Navigation -->
-<div class="flex items-center space-x-4 mt-4">
-    <div class="flex-grow">
-        <div class="bg-gray-50 rounded-md px-3 py-1 text-sm breadcrumbs">
-            <a href="/{{ username }}/files" class="text-blue-500 hover:underline">root</a>
-            {% if current_path %}
-                {% set path_parts = current_path.split('/') %}
-                {% set accumulated_path = '' %}
-                {% for part in path_parts %}
-                    {% if part %}
-                        {% if accumulated_path %}
-                            {% set accumulated_path = accumulated_path + '/' + part %}
-                        {% else %}
-                            {% set accumulated_path = part %}
-                        {% endif %}
-                        <span class="text-gray-500">/</span>
-                        <a href="/{{ username }}/files?path={{ accumulated_path | urlencode }}" class="text-blue-500 hover:underline">{{ part }}</a>
+        <div class="flex items-center space-x-4 mt-4">
+            <div class="flex-grow">
+                <div class="bg-gray-50 rounded-md px-3 py-1 text-sm breadcrumbs">
+                    <a href="/{{ username }}/files" class="text-blue-500 hover:underline">root</a>
+                    {% if current_path %}
+                        {% set path_parts = current_path.split('/') %}
+                        {% set accumulated_path = '' %}
+                        {% for part in path_parts %}
+                            {% if part %}
+                                {% if accumulated_path %}
+                                    {% set accumulated_path = accumulated_path + '/' + part %}
+                                {% else %}
+                                    {% set accumulated_path = part %}
+                                {% endif %}
+                                <span class="text-gray-500">/</span>
+                                <a href="/{{ username }}/files?path={{ accumulated_path }}" class="text-blue-500 hover:underline">{{ part }}</a>
+                            {% endif %}
+                        {% endfor %}
                     {% endif %}
-                {% endfor %}
-            {% endif %}
+                </div>
+            </div>
         </div>
-    </div>
-</div>
     </div>
 
     <!-- File Explorer -->
@@ -152,11 +152,11 @@ FILE_EXPLORER_TEMPLATE = """
 
             <!-- File List -->
             <div class="divide-y">
-                {% if current_path != "" %}
+                {% if current_path %}
                 <div class="flex items-center px-4 py-2 hover:bg-gray-50">
                     <div class="w-1/2 flex items-center">
                         <i class="fas fa-arrow-up text-gray-500 mr-2"></i>
-                        <a href="/{{ username }}/files{% if parent_path %}?path={{ parent_path | urlencode }}{% endif %}" class="text-blue-500 hover:underline">Parent Directory</a>
+                        <a href="/{{ username }}/files{% if parent_path %}?path={{ parent_path }}{% endif %}" class="text-blue-500 hover:underline">Parent Directory</a>
                     </div>
                     <div class="w-1/4 text-center text-gray-500">-</div>
                     <div class="w-1/4 text-center text-gray-500">-</div>
@@ -167,7 +167,12 @@ FILE_EXPLORER_TEMPLATE = """
                 <div class="flex items-center px-4 py-2 hover:bg-gray-50">
                     <div class="w-1/2 flex items-center">
                         <i class="fas fa-folder text-yellow-400 mr-2"></i>
-                        <a href="/{{ username }}/files?path={{ (current_path + '/' + item.name).strip('/') | urlencode }}" class="hover:underline">
+                        {% if current_path %}
+                            {% set folder_path = current_path + '/' + item.name %}
+                        {% else %}
+                            {% set folder_path = item.name %}
+                        {% endif %}
+                        <a href="/{{ username }}/files?path={{ folder_path }}" class="hover:underline">
                             {{ item.name }}
                         </a>
                     </div>
@@ -182,7 +187,12 @@ FILE_EXPLORER_TEMPLATE = """
                 <div class="flex items-center px-4 py-2 hover:bg-gray-50">
                     <div class="w-1/2 flex items-center">
                         <i class="{{ item.icon }} text-gray-500 mr-2"></i>
-                        <a href="#" onclick="viewFile('{{ (current_path + '/' + item.name).strip('/') }}')" class="hover:underline">
+                        {% if current_path %}
+                            {% set file_path = current_path + '/' + item.name %}
+                        {% else %}
+                            {% set file_path = item.name %}
+                        {% endif %}
+                        <a href="#" onclick="viewFile('{{ file_path }}')" class="hover:underline">
                             {{ item.name }}
                         </a>
                     </div>
@@ -286,6 +296,9 @@ FILE_EXPLORER_TEMPLATE = """
 </div>
 
 <script>
+// Global variable to store current path for use in JavaScript functions
+const currentPath = '{{ current_path }}';
+
 function viewFile(filePath) {
     // Try to fetch from our server-side cache first
     fetch(`/{{ username }}/file-content/${filePath}`)
@@ -310,7 +323,12 @@ function displayFileContent(data, filePath) {
     
     // Set up download button with improved handling for all file types
     const downloadBtn = document.getElementById('fileDownloadBtn');
-    downloadBtn.addEventListener('click', function(e) {
+    
+    // Remove any existing event listeners
+    downloadBtn.replaceWith(downloadBtn.cloneNode(true));
+    const newDownloadBtn = document.getElementById('fileDownloadBtn');
+    
+    newDownloadBtn.addEventListener('click', function(e) {
         e.preventDefault();
         
         try {
@@ -453,7 +471,7 @@ function uploadFiles() {
     }
     
     // Add current path
-    formData.append('path', '{{ current_path }}');
+    formData.append('path', currentPath);
     
     document.getElementById('uploadStatus').innerHTML = 
         '<p class="text-blue-500">Uploading files...</p>';
@@ -513,7 +531,7 @@ function createFolder() {
     }
     
     const formData = new FormData();
-    formData.append('path', '{{ current_path }}');
+    formData.append('path', currentPath);
     formData.append('folder', JSON.stringify({ name: folderName }));
     
     fetch(`/{{ username }}/api/upload`, {
@@ -536,36 +554,40 @@ function createFolder() {
     });
 }
 
-// Add event listeners for buttons
-document.getElementById('downloadBtn').addEventListener('click', function (e) {
-    e.preventDefault(); // Prevents default link behavior
-    const repoName = "{{ repo_name }}";
-    const downloadUrl = `/api/download?repo=${repoName}`;
+// Add event listeners for buttons when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Download button functionality
+    document.getElementById('downloadBtn').addEventListener('click', function (e) {
+        e.preventDefault();
+        const repoName = "{{ repo_name }}";
+        const downloadUrl = `/api/download?repo=${repoName}`;
 
-    fetch(downloadUrl)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Failed to download repository');
-            }
-            return response.blob();
-        })
-        .then(blob => {
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${repoName}.zip`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-        })
-        .catch(error => {
-            console.error('Download error:', error);
-            alert('Download failed.');
-        });
+        fetch(downloadUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to download repository');
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${repoName}.zip`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(error => {
+                console.error('Download error:', error);
+                alert('Download failed.');
+            });
+    });
+
+    // Upload and new folder button event listeners
+    document.getElementById('uploadBtn').addEventListener('click', showUploadModal);
+    document.getElementById('newFolderBtn').addEventListener('click', showNewFolderModal);
 });
-
-document.getElementById('uploadBtn').addEventListener('click', showUploadModal);
-document.getElementById('newFolderBtn').addEventListener('click', showNewFolderModal);
 </script>
 """
