@@ -1001,35 +1001,6 @@ function createFolder() {
 
 // Add event listeners for buttons when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    // Download button functionality
-    document.getElementById('downloadBtn').addEventListener('click', function (e) {
-        e.preventDefault();
-        const repoName = "{{ repo_name }}";
-        const downloadUrl = `/api/download?repo=${repoName}`;
-
-        fetch(downloadUrl)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Failed to download repository');
-                }
-                return response.blob();
-            })
-            .then(blob => {
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `${repoName}.zip`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-            })
-            .catch(error => {
-                console.error('Download error:', error);
-                alert('Download failed.');
-            });
-    });
-
     // Upload and new folder button event listeners
     document.getElementById('uploadBtn').addEventListener('click', showUploadModal);
     document.getElementById('newFolderBtn').addEventListener('click', showNewFolderModal);
