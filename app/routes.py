@@ -156,6 +156,10 @@ def user_home(username):
 
 @app.route('/<username>/logout')
 def logout(username):
+    # Clear instance-specific session
+    session_key = f'verified_email_{username}'
+    session.pop(session_key, None)
+    # Also clear the general session key for backwards compatibility
     session.pop('verified_email', None)
     return redirect(f'/{username}/home')
 
@@ -283,31 +287,40 @@ def user_files(username):
         return jsonify({'error': 'User not found'}), 404
     
     if not check_access(instance, request):
-        return render_template_string("""
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Access Required</title>
-                <script src="https://cdn.tailwindcss.com"></script>
-            </head>
-            <body class="bg-gray-100">
-                <div class="container mx-auto px-4 py-8">
-                    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
-                        <h1 class="text-2xl font-bold mb-4">Access Required</h1>
-                        <p class="mb-4">Please enter your email to access this instance:</p>
-                        <form method="GET" class="space-y-4">
-                            <input type="email" name="email" placeholder="Enter your email" 
-                                   class="w-full px-3 py-2 border rounded" required>
-                            <button type="submit" 
-                                    class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                                Submit
-                            </button>
-                        </form>
+    error_message = ""
+    if request.args.get('email'):
+        error_message = "Access denied. Email not in allowed users list."
+    
+    return render_template_string("""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Access Required</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+        </head>
+        <body class="bg-gray-100">
+            <div class="container mx-auto px-4 py-8">
+                <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+                    <h1 class="text-2xl font-bold mb-4">Access Required</h1>
+                    {% if error_message %}
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                        {{ error_message }}
                     </div>
+                    {% endif %}
+                    <p class="mb-4">Please enter your email to access this instance:</p>
+                    <form method="GET" class="space-y-4">
+                        <input type="email" name="email" placeholder="Enter your email" 
+                                class="w-full px-3 py-2 border rounded" required>
+                        <button type="submit" 
+                                class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                            Submit
+                        </button>
+                    </form>
                 </div>
-            </body>
-            </html>
-        """)
+            </div>
+        </body>
+        </html>
+    """, error_message=error_message)
         
     # Get and clean the path parameter
     path = request.args.get('path', '').strip()
