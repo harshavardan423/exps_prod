@@ -1,4 +1,4 @@
-# Contains all your HTML templates (BASE_TEMPLATE, INDEX_TEMPLATE, FILE_EXPLORER_TEMPLATE, BEHAVIORS_TEMPLATE)
+# Contains all your HTML templates (BASE_TEMPLATE, INDEX_TEMPLATE, FILE_EXPLORER_TEMPLATE, BEHAVIORS_TEMPLATE, ALLOWED_USERS_TEMPLATE, EMAIL_VERIFICATION_TEMPLATE)
 # HTML Templates
 BASE_TEMPLATE = """
 <!DOCTYPE html>
@@ -17,12 +17,11 @@ BASE_TEMPLATE = """
         }
         .card-hover:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
     </style>
 </head>
 <body class="bg-gray-50">
-    <nav class="bg-black shadow-lg border-b border-gray-800">
+    <nav class="bg-black">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
             <div class="flex items-center space-x-8">
@@ -65,7 +64,7 @@ BASE_TEMPLATE = """
                     {{ current_user_email }}
                 </div>
                 <a href="/{{ username }}/logout" 
-                   class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
+                   class="inline-flex items-center px-3 py-2 text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
                     <i class="fas fa-sign-out-alt mr-1"></i>
                     <span class="hidden sm:inline">Logout</span>
                     <span class="sm:hidden">
@@ -78,7 +77,7 @@ BASE_TEMPLATE = """
         
         <!-- Mobile Navigation Menu -->
         <div id="mobile-menu" class="md:hidden hidden">
-            <div class="px-2 pt-2 pb-3 space-y-1 border-t border-gray-800">
+            <div class="px-2 pt-2 pb-3 space-y-1">
                 <a href="/{{ username }}/home" 
                    class="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition-colors">
                     <i class="fas fa-home mr-2"></i>Home
@@ -92,7 +91,7 @@ BASE_TEMPLATE = """
                     <i class="fas fa-cogs mr-2"></i>Behaviors
                 </a>
                 {% if current_user_email %}
-                <div class="px-3 py-2 text-sm text-gray-300 border-t border-gray-800 mt-2 pt-2">
+                <div class="px-3 py-2 text-sm text-gray-300 mt-2 pt-2">
                     <i class="fas fa-user-circle mr-1"></i>
                     {{ current_user_email }}
                 </div>
@@ -110,14 +109,14 @@ BASE_TEMPLATE = """
             {% endif %}
         </div>
         
-        <div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
+        <div class="bg-white rounded-lg overflow-hidden">
             <div class="px-6 py-6">
                 {{ content | safe }}
             </div>
         </div>
         
         {% if instance_status %}
-        <div class="mt-6 p-4 rounded-lg {% if instance_status == 'online' %}bg-green-50 border border-green-200{% else %}bg-yellow-50 border border-yellow-200{% endif %}">
+        <div class="mt-6 p-4 rounded-lg {% if instance_status == 'online' %}bg-green-50{% else %}bg-yellow-50{% endif %}">
             <div class="flex items-center">
                 <div class="flex-shrink-0">
                     {% if instance_status == 'online' %}
@@ -183,13 +182,12 @@ INDEX_TEMPLATE = """
         }
         .card-hover:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
     </style>
 </head>
 <body class="bg-gray-50">
     <!-- Add the navbar here -->
-    <nav class="bg-black shadow-lg border-b border-gray-800">
+    <nav class="bg-black">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center space-x-8">
@@ -225,7 +223,7 @@ INDEX_TEMPLATE = """
         {% if instances %}
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {% for instance in instances %}
-                    <div class="bg-white rounded-xl shadow-md p-6 border border-gray-200 card-hover">
+                    <div class="bg-white rounded-xl p-6 card-hover">
                         <div class="flex items-center mb-4">
                             <div class="bg-blue-100 rounded-full p-3 mr-4">
                                 <i class="fas fa-atom text-blue-600 text-xl"></i>
@@ -243,7 +241,7 @@ INDEX_TEMPLATE = """
             </div>
         {% else %}
             <div class="text-center py-12">
-                <div class="bg-white rounded-xl shadow-md p-8 max-w-md mx-auto">
+                <div class="bg-white rounded-xl p-8 max-w-md mx-auto">
                     <i class="fas fa-atom text-gray-400 text-6xl mb-4"></i>
                     <h3 class="text-xl font-semibold text-gray-900 mb-2">No Active Instances</h3>
                     <p class="text-gray-600">No Atom instances are currently available.</p>
@@ -255,10 +253,108 @@ INDEX_TEMPLATE = """
 </html>
 """
 
+ALLOWED_USERS_TEMPLATE = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Allowed Users - Atom Server</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-black">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center space-x-8">
+                    <div class="flex items-center">
+                        <a href="/" class="flex items-center space-x-3">
+                            <img src="{{ url_for('static', filename='images/atom2.gif') }}" 
+                                 alt="Atom Logo" 
+                                 class="h-10 w-10">
+                            <span class="font-bold text-white text-xl">Atom Server</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-sm text-gray-300">
+                        <i class="fas fa-users mr-1"></i>
+                        Allowed Users
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-4">Allowed Users Management</h1>
+            <p class="text-lg text-gray-600">Manage user access to Atom instances</p>
+        </div>
+        
+        <div class="bg-white rounded-lg overflow-hidden">
+            <div class="px-6 py-6">
+                {{ content | safe }}
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+"""
+
+EMAIL_VERIFICATION_TEMPLATE = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Email Verification - Atom Server</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-black">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center space-x-8">
+                    <div class="flex items-center">
+                        <a href="/" class="flex items-center space-x-3">
+                            <img src="{{ url_for('static', filename='images/atom2.gif') }}" 
+                                 alt="Atom Logo" 
+                                 class="h-10 w-10">
+                            <span class="font-bold text-white text-xl">Atom Server</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-sm text-gray-300">
+                        <i class="fas fa-envelope-check mr-1"></i>
+                        Email Verification
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-4">Email Verification</h1>
+            <p class="text-lg text-gray-600">Verify your email to access Atom instances</p>
+        </div>
+        
+        <div class="bg-white rounded-lg overflow-hidden">
+            <div class="px-6 py-6">
+                {{ content | safe }}
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+"""
+
 BEHAVIORS_TEMPLATE = """
 <div class="space-y-6">
     <!-- Debug Info (remove this once working) -->
-    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+    <div class="bg-yellow-50 rounded-lg p-4 mb-4">
         <h4 class="font-medium text-yellow-800 mb-2">Debug Info:</h4>
         <pre class="text-xs text-yellow-700 overflow-auto">{{ behaviors_data | tojson(indent=2) }}</pre>
     </div>
@@ -274,8 +370,8 @@ BEHAVIORS_TEMPLATE = """
                     </h2>
                     <div class="grid gap-6">
                         {% for behavior_name, behavior_steps in behaviors_data.behaviors.items() %}
-                            <div class="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
-                                <div class="bg-white px-4 py-3 border-b border-gray-200">
+                            <div class="bg-gray-50 rounded-lg overflow-hidden">
+                                <div class="bg-white px-4 py-3">
                                     <h3 class="text-lg font-medium text-gray-900 flex items-center">
                                         <i class="fas fa-play-circle text-green-600 mr-2"></i>
                                         {{ behavior_name }}
@@ -287,7 +383,7 @@ BEHAVIORS_TEMPLATE = """
                                 <div class="p-4">
                                     <div class="space-y-3">
                                         {% for step in behavior_steps %}
-                                            <div class="bg-white rounded-md border border-gray-200 p-3">
+                                            <div class="bg-white rounded-md p-3">
                                                 <div class="flex items-start space-x-3">
                                                     <div class="flex-shrink-0">
                                                         {% if step.get('type') == 'triggers' %}
@@ -368,8 +464,8 @@ BEHAVIORS_TEMPLATE = """
                     </h2>
                     <div class="grid gap-6">
                         {% for sequence_name, sequence_steps in behaviors_data.sequences.items() %}
-                            <div class="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden">
-                                <div class="bg-white px-4 py-3 border-b border-gray-200">
+                            <div class="bg-gray-50 rounded-lg overflow-hidden">
+                                <div class="bg-white px-4 py-3">
                                     <h3 class="text-lg font-medium text-gray-900 flex items-center">
                                         <i class="fas fa-tasks text-purple-600 mr-2"></i>
                                         {{ sequence_name }}
@@ -381,7 +477,7 @@ BEHAVIORS_TEMPLATE = """
                                 <div class="p-4">
                                     <div class="space-y-3">
                                         {% for step in sequence_steps %}
-                                            <div class="bg-white rounded-md border border-gray-200 p-3">
+                                            <div class="bg-white rounded-md p-3">
                                                 <div class="flex items-start space-x-3">
                                                     <div class="flex-shrink-0">
                                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
@@ -450,7 +546,7 @@ BEHAVIORS_TEMPLATE = """
 
         {% else %}
             <!-- If behaviors_data is not a dictionary, show it as JSON -->
-            <div class="bg-white rounded-lg border border-gray-200 p-6">
+            <div class="bg-white rounded-lg p-6">
                 <h3 class="text-lg font-medium text-gray-900 mb-4">Raw Behaviors Data</h3>
                 <pre class="bg-gray-50 rounded p-4 text-sm overflow-auto">{{ behaviors_data | tojson(indent=2) }}</pre>
             </div>
@@ -507,21 +603,21 @@ FILE_EXPLORER_TEMPLATE = """
 <!-- File Explorer Template with Fixed Path Navigation -->
 <div class="flex flex-col h-full">
     <!-- Repository Header -->
-    <div class="border-b pb-4 mb-6">
+    <div class="pb-4 mb-6">
         <div class="flex items-center justify-between">
             <div class="flex items-center space-x-4">
                 <h1 class="text-2xl font-semibold text-gray-900 flex items-center">
                     <i class="fas fa-folder-open text-blue-600 mr-3"></i>
                     File Explorer
                 </h1>
-                <span class="px-3 py-1 text-xs font-medium border border-green-200 bg-green-50 text-green-800 rounded-full">Public</span>
+                <span class="px-3 py-1 text-xs font-medium bg-green-50 text-green-800 rounded-full">Public</span>
             </div>
         </div>
 
         <!-- Path Navigation -->
         <div class="flex items-center space-x-4 mt-4">
             <div class="flex-grow">
-                <div class="bg-gray-100 rounded-lg px-4 py-2 text-sm breadcrumbs border">
+                <div class="bg-gray-100 rounded-lg px-4 py-2 text-sm breadcrumbs">
                     <i class="fas fa-home text-gray-500 mr-2"></i>
                     <a href="/{{ username }}/files" class="text-blue-600 hover:text-blue-800 font-medium">root</a>
                     {% if current_path %}
@@ -546,13 +642,13 @@ FILE_EXPLORER_TEMPLATE = """
 
     <!-- File Explorer -->
     <div class="flex-grow">
-        <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
-            <div class="flex items-center justify-between px-6 py-3 bg-gray-50 border-b border-gray-200">
+        <div class="bg-white rounded-lg overflow-hidden">
+            <div class="flex items-center justify-between px-6 py-3 bg-gray-50">
                 <div class="flex items-center space-x-4">
-                    <button id="uploadBtn" onclick="showUploadModal()" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
+                    <button id="uploadBtn" onclick="showUploadModal()" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white rounded-md hover:bg-gray-50 transition-colors">
                         <i class="fas fa-upload mr-2"></i>Upload
                     </button>
-                    <button id="newFolderBtn" onclick="showNewFolderModal()" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors">
+                    <button id="newFolderBtn" onclick="showNewFolderModal()" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white rounded-md hover:bg-gray-50 transition-colors">
                         <i class="fas fa-folder-plus mr-2"></i>New Folder
                     </button>
                 </div>
@@ -627,8 +723,8 @@ FILE_EXPLORER_TEMPLATE = """
 
 <!-- File Viewer Modal with HTML View Options -->
 <div id="fileViewerModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50">
-    <div class="relative w-full max-w-4xl mx-auto mt-10 bg-white rounded-lg shadow-xl">
-        <div class="p-4 border-b flex items-center justify-between bg-gray-50 rounded-t-lg">
+    <div class="relative w-full max-w-4xl mx-auto mt-10 bg-white rounded-lg">
+        <div class="p-4 flex items-center justify-between bg-gray-50 rounded-t-lg">
             <div>
                 <h3 id="viewerFileName" class="text-lg font-medium text-gray-900"></h3>
                 <div class="text-sm text-gray-500">
@@ -636,7 +732,7 @@ FILE_EXPLORER_TEMPLATE = """
                 </div>
             </div>
             <div class="flex items-center space-x-2">
-                <a id="fileDownloadBtn" href="#" class="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                <a id="fileDownloadBtn" href="#" class="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
                     <i class="fas fa-download mr-1"></i>Download
                 </a>
                 <button onclick="closeFileViewer()" class="text-gray-400 hover:text-gray-600 transition-colors">
@@ -652,8 +748,8 @@ FILE_EXPLORER_TEMPLATE = """
 
 <!-- Upload Modal -->
 <div id="uploadModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50">
-    <div class="relative w-full max-w-lg mx-auto mt-20 bg-white rounded-lg shadow-xl">
-        <div class="p-4 border-b flex items-center justify-between bg-gray-50 rounded-t-lg">
+    <div class="relative w-full max-w-lg mx-auto mt-20 bg-white rounded-lg">
+        <div class="p-4 flex items-center justify-between bg-gray-50 rounded-t-lg">
             <h3 class="text-lg font-medium text-gray-900">Upload Files</h3>
             <button onclick="closeUploadModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
                 <i class="fas fa-times"></i>
@@ -664,18 +760,18 @@ FILE_EXPLORER_TEMPLATE = """
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Select Files</label>
                     <input type="file" id="fileInput" multiple 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500">
+                           class="w-full px-3 py-2 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Current Directory</label>
-                    <div class="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-md border">
+                    <div class="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-md">
                         /{{ current_path if current_path else 'root' }}
                     </div>
                 </div>
                 <div id="uploadStatus" class="text-sm"></div>
                 <div class="flex justify-end space-x-3 pt-4">
                     <button type="button" onclick="closeUploadModal()" 
-                            class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                            class="px-4 py-2 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
                         Cancel
                     </button>
                     <button type="button" onclick="uploadFiles()" 
@@ -690,8 +786,8 @@ FILE_EXPLORER_TEMPLATE = """
 
 <!-- New Folder Modal -->
 <div id="newFolderModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50">
-    <div class="relative w-full max-w-md mx-auto mt-20 bg-white rounded-lg shadow-xl">
-        <div class="p-4 border-b flex items-center justify-between bg-gray-50 rounded-t-lg">
+    <div class="relative w-full max-w-md mx-auto mt-20 bg-white rounded-lg">
+        <div class="p-4 flex items-center justify-between bg-gray-50 rounded-t-lg">
             <h3 class="text-lg font-medium text-gray-900">Create New Folder</h3>
             <button onclick="closeNewFolderModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
                 <i class="fas fa-times"></i>
@@ -702,17 +798,17 @@ FILE_EXPLORER_TEMPLATE = """
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Folder Name</label>
                     <input type="text" id="folderNameInput" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500" required>
+                           class="w-full px-3 py-2 rounded-md focus:ring-blue-500 focus:border-blue-500" required>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Current Directory</label>
-                    <div class="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-md border">
+                    <div class="text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-md">
                         /{{ current_path if current_path else 'root' }}
                     </div>
                 </div>
                 <div class="flex justify-end space-x-3 pt-4">
                     <button type="button" onclick="closeNewFolderModal()" 
-                            class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                            class="px-4 py-2 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
                         Cancel
                     </button>
                     <button type="button" onclick="createFolder()" 
@@ -828,11 +924,11 @@ function displayFileContent(data, filePath) {
         // Create toggle buttons for raw/rendered view
         const viewOptionsHtml = `
             <div class="mb-4 flex space-x-2">
-                <button id="viewRawBtn" class="px-3 py-1 border rounded bg-gray-100 hover:bg-gray-200 transition-colors">View Raw</button>
-                <button id="viewRenderedBtn" class="px-3 py-1 border rounded hover:bg-gray-100 transition-colors">View Rendered</button>
+                <button id="viewRawBtn" class="px-3 py-1 rounded bg-gray-100 hover:bg-gray-200 transition-colors">View Raw</button>
+                <button id="viewRenderedBtn" class="px-3 py-1 rounded hover:bg-gray-100 transition-colors">View Rendered</button>
             </div>
             <div id="rawContentView" class="block">
-                <pre class="whitespace-pre-wrap p-4 bg-gray-50 rounded border overflow-auto">${escapeHtml(data.content)}</pre>
+                <pre class="whitespace-pre-wrap p-4 bg-gray-50 rounded overflow-auto">${escapeHtml(data.content)}</pre>
             </div>
         `;
         
@@ -854,10 +950,10 @@ function displayFileContent(data, filePath) {
             });
         }, 0);
     } else if (data.mime_type.startsWith('image/')) {
-        contentDiv.innerHTML = `<div class="text-center"><img src="data:${data.mime_type};base64,${data.content}" class="max-w-full max-h-96 mx-auto rounded-lg shadow-md"></div>`;
+        contentDiv.innerHTML = `<div class="text-center"><img src="data:${data.mime_type};base64,${data.content}" class="max-w-full max-h-96 mx-auto rounded-lg"></div>`;
     } else if (data.mime_type.startsWith('text/') || data.mime_type === 'application/json' || 
                data.mime_type === 'application/javascript') {
-        contentDiv.innerHTML = `<pre class="whitespace-pre-wrap p-4 bg-gray-50 rounded border overflow-auto" style="max-height: 500px;">${escapeHtml(data.content)}</pre>`;
+        contentDiv.innerHTML = `<pre class="whitespace-pre-wrap p-4 bg-gray-50 rounded overflow-auto" style="max-height: 500px;">${escapeHtml(data.content)}</pre>`;
     } else {
         contentDiv.innerHTML = `<div class="text-center">
             <i class="fas fa-file text-6xl text-gray-400 mb-4"></i>
