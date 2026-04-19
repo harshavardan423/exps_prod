@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/file_explorer.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="fe-toolbar">
+  <div class="fe-breadcrumb">
+    <i class="fas fa-folder-open" style="color:var(--teal);"></i>
+    <a href="/{{ username }}/files">root</a>
+    {% if current_path %}
+      {% set path_parts = current_path.split('/') %}
+      {% set ns = namespace(acc='') %}
+      {% for part in path_parts %}
+        {% if part %}
+          {% if ns.acc %}{% set ns.acc = ns.acc + '/' + part %}{% else %}{% set ns.acc = part %}{% endif %}
+          <span class="sep">/</span>
+          <a href="/{{ username }}/files?path={{ ns.acc | urlencode }}">{{ part }}</a>
+        {% endif %}
+      {% endfor %}
+    {% endif %}
+  </div>
+  <div class="fe-actions">
+    <button class="btn btn--ghost" onclick="showUploadModal()"><i class="fas fa-upload"></i> Upload</button>
+    <button class="btn btn--ghost" onclick="showNewFolderModal()"><i class="fas fa-folder-plus"></i> Folder</button>
+  </div>
+</div>
+
+<div class="card" style="overflow:hidden;">
+  <table class="fe-table">
+    <thead>
+      <tr>
+        <th style="width:54%;">Name</th>
+        <th style="width:16%;text-align:center;">Size</th>
+        <th style="width:30%;text-align:right;padding-right:18px;">Modified</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% if current_path %}
+      <tr>
+        <td><a href="/{{ username }}/files{% if parent_path %}?path={{ parent_path|urlencode }}{% endif %}" class="fe-row">
+          <span class="fe-row__icon"><i class="fas fa-arrow-up" style="color:var(--text-muted);"></i></span>
+          <span class="fe-row__name">..</span>
+        </a></td>
+        <td></td><td></td>
+      </tr>
+      {% endif %}
+
+      {% if file_data.folders %}
+      <tr><td colspan="3"><div class="fe-sec-head">Folders</div></td></tr>
+      {% for item in file_data.folders %}
+        {% if current_path %}{% set fp = current_path + '/' + item.name %}{% else %}{% set fp = item.name %}{% endif %}
+        <tr>
+          <td><a href="/{{ username }}/files?path={{ fp|urlencode }}" class="fe-row">
+            <span class="fe-row__icon"><i class="fas fa-folder" style="color:#fbbf24;"></i></span>
+            <span class="fe-row__name">{{ item.name }}</span>
+          </a></td>
+          <td style="padding:0 16px;text-align:center;"><span class="pill pill--gray">dir</span></td>
+          <td style="padding-right:18px;text-align:right;"><span class="fe-row__meta">{{ item.modified }}</span></td>
+        </tr>
+      {% endfor %}
+      {% endif %}
+
+      {% if file_data.files %}
+      <tr><td colspan="3"><div class="fe-sec-head">Files</div></td></tr>
+      {% for item in file_data.files %}
+        {% if current_path %}{% set fp = current_path + '/' + item.name %}{% else %}{% set fp = item.name %}{% endif %}
+        <tr>
+          <td><button class="fe-row" onclick="viewFile('{{ fp|e }}')">
+            <span class="fe-row__icon"><i class="{{ item.icon }}" style="color:var(--text-dim);"></i></span>
+            <span class="fe-row__name">{{ item.name }}</span>
+          </button></td>
+          <td style="padding:0 16px;text-align:center;"><span class="fe-row__meta">{{ item.size }}</span></td>
+          <td style="padding-right:18px;text-align:right;"><span class="fe-row__meta">{{ item.modified }}</span></td>
+        </tr>
+      {% endfor %}
+      {% endif %}
+
+      {% if not file_data.folders and not file_data.files %}
+      <tr><td colspan="3">
+        <div class="empty-state">
+          <div class="empty-state__icon"><i class="fas fa-folder-open"></i></div>
+          <div class="empty-state__title">Empty Directory</div>
+          <div class="empty-state__text">Upload files or create folders to get started.</div>
+        </div>
+      </td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<!-- File viewer -->
+<div id="fv-overlay" class="fv-overlay" onclick="if(event.target===this)closeFileViewer()">
+  <div class="fv-modal">
+    <div class="fv-modal__head">
+      <span id="fv-name" class="fv-modal__name"></span>
+      <div class="fv-modal__actions">
+        <a id="fv-download" href="#" class="btn btn--ghost" style="font-size:12px;padding:6px 14px;"><i class="fas fa-download"></i> Download</a>
+        <button class="btn btn--ghost" style="padding:6px 10px;" onclick="closeFileViewer()"><i class="fas fa-times"></i></button>
+      </div>
+    </div>
+    <div class="fv-modal__body"><div id="fv-content"></div></div>
+  </div>
+</div>
+
+<!-- Upload modal -->
+<div id="uploadModal" class="modal-overlay" onclick="if(event.target===this)closeUploadModal()">
+  <div class="modal">
+    <div class="modal__header">
+      <span class="modal__title"><i class="fas fa-upload" style="color:var(--teal);margin-right:8px;"></i>Upload Files</span>
+      <button class="modal__close" onclick="closeUploadModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal__body">
+      <div>
+        <label style="font-size:11px;color:var(--text-dim);font-family:var(--mono);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;">Select Files</label>
+        <input type="file" id="fileInput" multiple style="width:100%;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:var(--radius-xs);padding:9px 12px;color:var(--text);font-size:13px;font-family:var(--font);">
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);font-family:var(--mono);background:rgba(0,0,0,0.2);padding:8px 12px;border-radius:var(--radius-xs);border:1px solid var(--border);">
+        <i class="fas fa-folder" style="color:var(--yellow);margin-right:6px;"></i>/{{ current_path if current_path else 'root' }}
+      </div>
+      <div id="uploadStatus" style="font-size:13px;min-height:20px;"></div>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" onclick="closeUploadModal()">Cancel</button>
+      <button class="btn btn--primary" onclick="uploadFiles()"><i class="fas fa-upload"></i> Upload</button>
+    </div>
+  </div>
+</div>
+
+<!-- New Folder modal -->
+<div id="newFolderModal" class="modal-overlay" onclick="if(event.target===this)closeNewFolderModal()">
+  <div class="modal">
+    <div class="modal__header">
+      <span class="modal__title"><i class="fas fa-folder-plus" style="color:var(--yellow);margin-right:8px;"></i>New Folder</span>
+      <button class="modal__close" onclick="closeNewFolderModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal__body">
+      <div>
+        <label style="font-size:11px;color:var(--text-dim);font-family:var(--mono);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;">Folder Name</label>
+        <input type="text" id="folderNameInput" class="form-input" placeholder="my-folder" autocomplete="off">
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);font-family:var(--mono);background:rgba(0,0,0,0.2);padding:8px 12px;border-radius:var(--radius-xs);border:1px solid var(--border);">
+        <i class="fas fa-folder" style="color:var(--yellow);margin-right:6px;"></i>/{{ current_path if current_path else 'root' }}
+      </div>
+    </div>
+    <div class="modal__footer">
+      <button class="btn btn--ghost" onclick="closeNewFolderModal()">Cancel</button>
+      <button class="btn btn--primary" onclick="createFolder()"><i class="fas fa-folder-plus"></i> Create</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  var currentPath = "{{ current_path|e }}";
+  var ATOM_USERNAME = "{{ username|e }}";
+</script>
+<script src="{{ url_for('static', filename='js/file_explorer.js') }}"></script>
+{% endblock %}

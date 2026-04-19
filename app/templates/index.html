@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Atom Exposure Server</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/shared.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+</head>
+<body>
+
+<nav class="atom-nav">
+  <a href="/" class="atom-nav__brand">
+    <img src="{{ url_for('static', filename='images/atom2.gif') }}" alt="Atom" class="atom-nav__logo">
+    <span class="atom-nav__title">Atom Server</span>
+  </a>
+  <div class="atom-nav__spacer"></div>
+  <span class="pill pill--gray"><i class="fas fa-server"></i> Exposure Server</span>
+</nav>
+
+<div class="hero">
+  <div class="hero__eyebrow"><i class="fas fa-circle" style="font-size:8px;"></i> Live</div>
+  <h1 class="hero__title">Atom Exposure<br>Server</h1>
+  <p class="hero__sub">Active Atom instances running on this node</p>
+</div>
+
+{% if instances %}
+<div class="instances-grid">
+  {% for instance in instances %}
+  <a href="/{{ instance.username }}/home" class="instance-card">
+    <div class="instance-card__icon"><i class="fas fa-atom"></i></div>
+    <div class="instance-card__name">{{ instance.username }}</div>
+    <div class="instance-card__label">atom://instance</div>
+    <div class="instance-card__cta">View Instance <i class="fas fa-arrow-right"></i></div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+<div style="max-width:420px;margin:0 auto;padding:0 16px 56px;">
+  <div class="card"><div class="card__body">
+    <div class="empty-state">
+      <div class="empty-state__icon"><i class="fas fa-atom"></i></div>
+      <div class="empty-state__title">No Active Instances</div>
+      <div class="empty-state__text">No Atom instances are currently registered on this server.</div>
+    </div>
+  </div></div>
+</div>
+{% endif %}
+
+</body>
+</html>

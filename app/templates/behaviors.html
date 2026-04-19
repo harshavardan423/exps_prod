@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/behaviors.css') }}">
+{% endblock %}
+
+{% block content %}
+{% if behaviors_data.behaviors and behaviors_data.behaviors|length > 0 %}
+<div class="section-title-sm"><i class="fas fa-brain" style="margin-right:6px;"></i> Behaviors</div>
+<div class="beh-list">
+  {% for beh in behaviors_data.behaviors %}
+  <div class="beh-item">
+    <div class="beh-icon"><i class="fas fa-bolt"></i></div>
+    <div class="beh-info">
+      <div class="beh-name">{{ beh.name }}</div>
+      <div class="beh-trigger">{{ beh.trigger }}</div>
+    </div>
+    <div class="beh-actions">
+      <label class="toggle-label">
+        <input type="checkbox" class="toggle-input beh-toggle" data-behavior="{{ beh.name }}" {% if beh.active %}checked{% endif %}>
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if behaviors_data.sequences and behaviors_data.sequences|length > 0 %}
+<div class="section-title-sm" style="margin-top:24px;"><i class="fas fa-play-circle" style="margin-right:6px;"></i> Sequences</div>
+<div class="seq-list">
+  {% for seq in behaviors_data.sequences %}
+  <div class="seq-item">
+    <div class="seq-icon"><i class="fas fa-play"></i></div>
+    <div class="seq-info">
+      <div class="seq-name">{{ seq.name }}</div>
+      <div class="seq-meta">{{ seq.steps }} steps · {{ seq.desc }}</div>
+    </div>
+    <div class="seq-actions">
+      <button class="play-btn seq-run" data-sequence="{{ seq.name }}"><i class="fas fa-play"></i></button>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if (not behaviors_data.behaviors or behaviors_data.behaviors|length == 0) and (not behaviors_data.sequences or behaviors_data.sequences|length == 0) %}
+<div class="empty-state">
+  <div class="empty-state__icon"><i class="fas fa-cogs"></i></div>
+  <div class="empty-state__title">No Behaviors or Sequences</div>
+  <div class="empty-state__text">This instance has no configured behaviors or sequences.</div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>var ATOM_USERNAME = "{{ username }}";</script>
+<script src="{{ url_for('static', filename='js/behaviors.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/chat_list.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="cl-list">
+  {% if sessions %}
+    {% for sess in sessions %}
+    <a href="/{{ username }}/chat/{{ sess.id }}" class="cl-card">
+      <div>
+        <div class="cl-name">{{ sess.name }}</div>
+        <div class="cl-meta">
+          <span class="cl-count">{{ sess.message_count }} msgs</span>
+          <span>{{ sess.last_active[:16] }}</span>
+        </div>
+      </div>
+      <i class="fas fa-chevron-right cl-arrow"></i>
+    </a>
+    {% endfor %}
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state__icon"><i class="fas fa-comment-slash"></i></div>
+    <div class="empty-state__title">No Chat Sessions</div>
+    <div class="empty-state__text">Start a conversation in Atom to see sessions here.</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

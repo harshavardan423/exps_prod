@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Email Verification — Atom Server</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/shared.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/email_verification.css') }}">
+</head>
+<body>
+
+<nav class="atom-nav">
+  <a href="/" class="atom-nav__brand">
+    <img src="{{ url_for('static', filename='images/atom2.gif') }}" alt="Atom" class="atom-nav__logo">
+    <span class="atom-nav__title">Atom Server</span>
+  </a>
+  <div class="atom-nav__spacer"></div>
+  <span class="pill pill--teal"><i class="fas fa-envelope"></i> Verification</span>
+</nav>
+
+<div class="verify-wrap">
+  <div class="verify-box">
+    <div class="verify-icon"><i class="fas fa-envelope-open-text"></i></div>
+    <div class="verify-title">Email Verification</div>
+    <div class="verify-sub">Verify your email to access Atom instances</div>
+    <div class="card"><div class="card__body">{{ content | safe }}</div></div>
+  </div>
+</div>
+
+</body>
+</html>
