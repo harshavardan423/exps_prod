@@ -2,7 +2,7 @@ import requests
 from flask import request, redirect, render_template_string, make_response, session, jsonify, url_for, current_app
 from functools import wraps
 
-AUTH_SERVER_URL = "https://agentsofatom.com:10000"
+AUTH_SERVER_URL = "https://auth.agentsofatom.com:10000"
 
 def require_atom_user(f):
     @wraps(f)
