@@ -1,11 +1,11 @@
-from flask import jsonify, request, render_template_string, session, redirect
+from flask import jsonify, request, render_template_string, render_template, session, redirect
 from app import app, db
 from app.models import ExposedInstance
 from app.utils import render_page, fetch_local_data, check_access,get_file_icon
 import uuid
 import json  # Add this line
 from datetime import datetime
-from app.templates import INDEX_TEMPLATE, BASE_TEMPLATE, FILE_EXPLORER_TEMPLATE, CHAT_LIST_TEMPLATE, CHAT_SESSION_TEMPLATE, BEHAVIORS_TEMPLATE
+from flask import render_template
 from app.use_atom_auth import require_atom_user
 import requests
 from datetime import datetime
@@ -24,8 +24,8 @@ def index():
             if (datetime.utcnow() - instance.last_heartbeat).total_seconds() <= 300
         ]
         
-        return render_template_string(
-            INDEX_TEMPLATE,
+        return render_template(
+            "index.html",
             instances=active_instances
         )
     except Exception as e:
@@ -388,19 +388,16 @@ def user_files(username):
             file['icon'] = get_file_icon(file['name'])
     
     # Render the file explorer template
-    content = render_template_string(
-        FILE_EXPLORER_TEMPLATE,
+    return render_template(
+        "file_explorer.html",
         username=username,
         file_data=file_data,
         current_path=path,
-        datetime=datetime,
         parent_path=parent_path,
-        repo_name=username
+        title="Files",
+        instance_status='online' if is_fresh else 'offline',
+        current_user_email=get_current_user_email()
     )
-    
-    return render_page(username, "Files", content, 
-                      instance_status='online' if is_fresh else 'offline',
-                      current_user_email=get_current_user_email())
 
 @app.route('/<username>/file-content/<path:file_path>')
 @require_atom_user
@@ -551,11 +548,14 @@ def user_behaviors(username):
         'sequences': sequences_list
     }
 
-    from app.templates import BEHAVIORS_TEMPLATE
-    content = render_template_string(BEHAVIORS_TEMPLATE, behaviors_data=prepared_data, username=username)
-    return render_page(username, "Behaviors", content,
-                      instance_status='online' if is_fresh else 'offline',
-                      current_user_email=get_current_user_email())
+    return render_template(
+        "behaviors.html",
+        behaviors_data=prepared_data,
+        username=username,
+        title="Behaviors",
+        instance_status='online' if is_fresh else 'offline',
+        current_user_email=get_current_user_email()
+    )
 
 
 @app.route('/<username>/chat')
@@ -584,9 +584,13 @@ def user_chat_list(username):
     # sort by last_active descending
     sessions_list.sort(key=lambda x: x['last_active'], reverse=True)
     
-    from app.templates import CHAT_LIST_TEMPLATE
-    content = render_template_string(CHAT_LIST_TEMPLATE, sessions=sessions_list, username=username)
-    return render_page(username, "Chat Sessions", content, current_user_email=get_current_user_email())
+    return render_template(
+        "chat_list.html",
+        sessions=sessions_list,
+        username=username,
+        title="Chat Sessions",
+        current_user_email=get_current_user_email()
+    )
 
 
 @app.route('/<username>/chat/<session_id>')
@@ -613,9 +617,14 @@ def user_chat_session(username, session_id):
     if not session_data:
         return "Session not found", 404
     
-    from app.templates import CHAT_SESSION_TEMPLATE
-    content = render_template_string(CHAT_SESSION_TEMPLATE, session=session_data, session_id=session_id, username=username)
-    return render_page(username, f"Chat: {session_data.get('name', 'Untitled')}", content, current_user_email=get_current_user_email())
+    return render_template(
+        "chat_session.html",
+        session=session_data,
+        session_id=session_id,
+        username=username,
+        title=f"Chat: {session_data.get('name', 'Untitled')}",
+        current_user_email=get_current_user_email()
+    )
 
 @app.route('/<username>/chat/<session_id>/messages', methods=['GET'])
 @require_atom_user
