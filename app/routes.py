@@ -31,6 +31,143 @@ def index():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/instances', methods=['GET'])
+@require_atom_user
+def api_instances():
+    try:
+        user_email = session.get('user_email')
+        instances = ExposedInstance.query.all()
+        result = []
+        for i in instances:
+            result.append({
+                'username': i.username,
+                'is_online': i.is_online(),
+                'last_heartbeat': i.last_heartbeat.isoformat()
+            })
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/<username>/api/home_data', methods=['GET'])
+@require_atom_user
+def api_home_data(username):
+    instance = ExposedInstance.query.filter_by(username=username).first()
+    if not instance:
+        return jsonify({'error': 'User not found'}), 404
+    data, is_fresh = fetch_local_data(instance, 'home_data')
+    if data:
+        instance.home_data = data
+        instance.last_data_sync = datetime.utcnow()
+        db.session.commit()
+    elif instance.home_data:
+        data = instance.home_data
+    else:
+        data = {}
+    return jsonify(data), 200
+
+
+@app.route('/<username>/api/files_data', methods=['GET'])
+@require_atom_user
+def api_files_data(username):
+    instance = ExposedInstance.query.filter_by(username=username).first()
+    if not instance:
+        return jsonify({'error': 'User not found'}), 404
+    path = request.args.get('path', '')
+    data, is_fresh = fetch_local_data(instance, 'files_data', {'path': path})
+    if data and is_fresh:
+        return jsonify(data), 200
+    # fallback to cache
+    if instance.files_data:
+        cache_key = path if path else 'root'
+        cached = instance.files_data.get('cached_paths', {}).get(cache_key)
+        if cached:
+            return jsonify({'structure': cached.get('structure', {'folders': [], 'files': []})}), 200
+        if not path and 'structure' in instance.files_data:
+            return jsonify({'structure': instance.files_data['structure']}), 200
+    return jsonify({'structure': {'folders': [], 'files': []}}), 200
+
+
+@app.route('/<username>/api/behaviors_data', methods=['GET'])
+@require_atom_user
+def api_behaviors_data(username):
+    instance = ExposedInstance.query.filter_by(username=username).first()
+    if not instance:
+        return jsonify({'error': 'User not found'}), 404
+    data, is_fresh = fetch_local_data(instance, 'behaviors_data')
+    if data:
+        instance.behaviors_data = data
+        instance.last_data_sync = datetime.utcnow()
+        db.session.commit()
+    elif instance.behaviors_data:
+        data = instance.behaviors_data
+    else:
+        data = {}
+
+    # Normalize exactly like the HTML route does
+    behaviors_list = []
+    sequences_list = []
+
+    if isinstance(data.get('behaviors'), dict):
+        for name, details in data['behaviors'].items():
+            trigger = 'configured'
+            steps = details.get('steps', []) if isinstance(details, dict) else details if isinstance(details, list) else []
+            for step in steps:
+                if step.get('type') == 'triggers':
+                    trigger = step.get('name', trigger)
+                    break
+            active = details.get('activated', True) if isinstance(details, dict) else True
+            behaviors_list.append({'name': name, 'trigger': trigger, 'active': active})
+    elif isinstance(data.get('behaviors'), list):
+        for item in data['behaviors']:
+            name = item.get('behavior') or item.get('name')
+            if not name:
+                continue
+            trigger = 'configured'
+            details = item.get('details', {})
+            steps = details if isinstance(details, list) else details.get('steps', [])
+            for step in steps:
+                if step.get('type') == 'triggers':
+                    trigger = step.get('name', trigger)
+                    break
+            behaviors_list.append({'name': name, 'trigger': trigger, 'active': item.get('activated', True)})
+
+    if isinstance(data.get('sequences'), dict):
+        for name, details in data['sequences'].items():
+            steps = details if isinstance(details, list) else details.get('steps', [])
+            desc_parts = [s.get('name', '') for s in steps[:3] if s.get('name')]
+            sequences_list.append({'name': name, 'steps': len(steps), 'desc': ' → '.join(desc_parts)[:80]})
+    elif isinstance(data.get('sequences'), list):
+        for item in data['sequences']:
+            name = item.get('sequence') or item.get('name')
+            if not name:
+                continue
+            details = item.get('details', {})
+            steps = details if isinstance(details, list) else details.get('steps', [])
+            desc_parts = [s.get('name', '') for s in steps[:3] if s.get('name')]
+            sequences_list.append({'name': name, 'steps': len(steps), 'desc': ' → '.join(desc_parts)[:80]})
+
+    return jsonify({'behaviors': behaviors_list, 'sequences': sequences_list}), 200
+
+
+@app.route('/<username>/api/chat/sessions', methods=['GET'])
+@require_atom_user
+def api_chat_sessions_for_user(username):
+    instance = ExposedInstance.query.filter_by(username=username).first()
+    if not instance:
+        return jsonify({'error': 'User not found'}), 404
+    if not instance.sessions_data:
+        return jsonify({'sessions': []}), 200
+    sessions_list = []
+    for filename, sess in instance.sessions_data.items():
+        sessions_list.append({
+            'id': sess.get('id'),
+            'name': sess.get('name', 'Untitled'),
+            'last_active': sess.get('last_active', ''),
+            'message_count': len(sess.get('messages', [])),
+        })
+    sessions_list.sort(key=lambda x: x['last_active'], reverse=True)
+    return jsonify({'sessions': sessions_list}), 200
 
 @app.route('/<username>/home')
 @require_atom_user

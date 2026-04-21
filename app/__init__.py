@@ -9,13 +9,7 @@ app.wsgi_app = ProxyFix(app.wsgi_app)
 app.secret_key = 'your-secret-key-here'  # Change this to a secure value
 
 # Configure CORS with specific origins
-CORS(app, origins=[
-    "http://exclusive.agentsofatom.com:1002",
-    "https://exclusive.agentsofatom.com:1002",
-    # Add other domains as needed
-    "http://localhost:3000",  # if you need local development
-    "http://127.0.0.1:3000"
-])
+CORS(app, origins="*")
 
 # Database configuration
 basedir = os.path.abspath(os.path.dirname(__file__))
