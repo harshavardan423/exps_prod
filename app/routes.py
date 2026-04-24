@@ -36,14 +36,22 @@ def index():
 def api_instances():
     try:
         user_email = session.get('user_email')
+        username = user_email.split('@')[0] if user_email else None
         instances = ExposedInstance.query.all()
         result = []
         for i in instances:
-            result.append({
-                'username': i.username,
-                'is_online': i.is_online(),
-                'last_heartbeat': i.last_heartbeat.isoformat()
-            })
+            is_own = (i.username == username)
+            is_allowed = (
+                i.allowed_users and
+                isinstance(i.allowed_users, list) and
+                user_email in i.allowed_users
+            )
+            if is_own or is_allowed:
+                result.append({
+                    'username': i.username,
+                    'is_online': i.is_online(),
+                    'last_heartbeat': i.last_heartbeat.isoformat()
+                })
         return jsonify(result), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
