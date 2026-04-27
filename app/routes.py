@@ -18,10 +18,16 @@ from app.utils import render_page, fetch_local_data, check_access, get_file_icon
 @require_atom_user
 def index():
     try:
+        user_email = session.get('user_email')
+        username = user_email.split('@')[0] if user_email else None
         instances = ExposedInstance.query.all()
         active_instances = [
-            instance for instance in instances
-            if (datetime.utcnow() - instance.last_heartbeat).total_seconds() <= 300
+            i for i in instances
+            if (datetime.utcnow() - i.last_heartbeat).total_seconds() <= 300
+            and (
+                i.username == username
+                or (i.allowed_users and isinstance(i.allowed_users, list) and user_email in i.allowed_users)
+            )
         ]
         
         return render_template(
