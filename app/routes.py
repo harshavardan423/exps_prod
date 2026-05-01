@@ -1020,6 +1020,23 @@ def heartbeat(token):
         print(f"Heartbeat error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/<username>/session/new', methods=['POST'])
+@require_atom_user
+def proxy_new_session(username):
+    instance = ExposedInstance.query.filter_by(username=username).first()
+    if not instance:
+        return jsonify({'error': 'Instance not found'}), 404
+    try:
+        data = request.json or {}
+        data['page'] = 'android_app'
+        resp = requests.post(
+            f"{instance.local_url}/session/new",
+            json=data, timeout=10, verify=False
+        )
+        return jsonify(resp.json()), resp.status_code
+    except Exception as e:
+        return jsonify({'error': str(e)}), 502
+
 @app.route('/deregister/<token>', methods=['DELETE'])
 def deregister_instance(token):
     try:
