@@ -146,7 +146,12 @@ def check_access(instance, request):
     return is_allowed
 
 def get_allowed_users(instance):
-    """Get allowed users list, preferring fresh data from local instance"""
+    """Get allowed users list, preferring cached data"""
+    # Use cached data first
+    if hasattr(instance, 'allowed_users') and instance.allowed_users is not None:
+        return instance.allowed_users
+    
+    # Only hit network if nothing cached
     try:
         response = requests.get(f"{instance.local_url}/api/allowed_users", timeout=3)
         if response.ok:
@@ -154,17 +159,12 @@ def get_allowed_users(instance):
     except Exception as e:
         print(f"Error fetching allowed users from local instance: {e}")
     
-    # Fallback to stored data
-    if hasattr(instance, 'allowed_users') and instance.allowed_users is not None:
-        return instance.allowed_users
-    
-    # Return None if no data available (different from empty list)
     return None
 
 def get_current_user_email():
     """Get the currently verified email from session"""
     # You might want to make this instance-specific too
-    return session.get('verified_email')
+    return session.get('user_email')
 
 def get_file_icon(filename):
     """Get appropriate Font Awesome icon for file type"""

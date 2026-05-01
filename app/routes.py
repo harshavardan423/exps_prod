@@ -997,15 +997,6 @@ def heartbeat(token):
                     instance.sessions_data = data['sessions_data']
                 instance.last_data_sync = datetime.utcnow()
         
-        # If allowed_users wasn't in the home_data, try to fetch it directly
-        if not instance.allowed_users:
-            try:
-                response = requests.get(f"{instance.local_url}/api/allowed_users", timeout=3)
-                if response.ok:
-                    instance.allowed_users = response.json().get('allowed_users', [])
-            except Exception as e:
-                print(f"Error fetching allowed_users during heartbeat: {e}")
-        
         # Prepare response with pending uploads and pending messages
         response_data = {'status': 'ok'}
         
