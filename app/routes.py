@@ -26,6 +26,7 @@ def index():
             if (datetime.utcnow() - i.last_heartbeat).total_seconds() <= 300
             and (
                 i.username == username
+                or (i.username and i.username.startswith(f"{username}__"))  # NEW: recognizes email__name format
                 or (i.allowed_users and isinstance(i.allowed_users, list) and user_email in i.allowed_users)
             )
         ]
@@ -47,12 +48,13 @@ def api_instances():
         result = []
         for i in instances:
             is_own = (i.username == username)
+            is_own_format = (i.username and i.username.startswith(f"{username}__"))  # NEW
             is_allowed = (
                 i.allowed_users and
                 isinstance(i.allowed_users, list) and
                 user_email in i.allowed_users
             )
-            if is_own or is_allowed:
+            if is_own or is_own_format or is_allowed:
                 result.append({
                     'username': i.username,
                     'is_online': i.is_online(),
