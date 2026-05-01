@@ -19,7 +19,7 @@ BASE_TEMPLATE = """<!DOCTYPE html>
 <nav class="atom-nav">
   <a href="/{{ username }}/home" class="atom-nav__brand">
     <img src="{{ url_for('static', filename='images/atom2.gif') }}" alt="Atom" class="atom-nav__logo">
-    <span class="atom-nav__title">{{ username }}'s Atom</span>
+    <span class="atom-nav__title">{{ username.split('__')[-1] if '__' in username else username }}'s Atom</span>
   </a>
   <div class="atom-nav__links">
     <a href="/{{ username }}/home"      class="atom-nav__link"><i class="fas fa-home"></i> Home</a>
